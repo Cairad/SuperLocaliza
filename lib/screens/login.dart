@@ -3,7 +3,7 @@ import 'package:superlocaliza/screens/register.dart';
 import 'home.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, required Null Function() onLoginSuccess});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();

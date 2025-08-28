@@ -13,6 +13,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
+  bool _isDarkMode = false; // Switch de tema
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -60,7 +61,7 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.green.shade50,
+      backgroundColor: _isDarkMode ? Colors.black : Colors.green.shade50,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(90),
         child: AppBar(
@@ -69,26 +70,49 @@ class _HomePageState extends State<HomePage>
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
           ),
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.green.shade700, Colors.green.shade400],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+          backgroundColor: _isDarkMode
+              ? Colors.grey[900]
+              : Colors.green.shade700,
+          flexibleSpace: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.2),
-                ),
-                child: const Icon(
-                  Icons.local_grocery_store,
-                  size: 36,
-                  color: Colors.white,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Logo
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.2),
+                    ),
+                    child: const Icon(
+                      Icons.local_grocery_store,
+                      size: 36,
+                      color: Colors.white,
+                    ),
+                  ),
+                  // Switch de tema
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Transform.scale(
+                      scale: 0.9, // hace el switch un poco más compacto
+                      child: Switch(
+                        value: _isDarkMode,
+                        onChanged: (value) {
+                          setState(() {
+                            _isDarkMode = value;
+                          });
+                        },
+                        activeTrackColor: Colors.green.shade400,
+                        activeColor: Colors.green.shade700,
+                        inactiveThumbColor: Colors.white,
+                        inactiveTrackColor: Colors.white54,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -105,7 +129,9 @@ class _HomePageState extends State<HomePage>
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.white, Colors.green.shade50],
+                    colors: _isDarkMode
+                        ? [Colors.grey.shade900, Colors.black]
+                        : [Colors.white, Colors.green.shade50],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -126,7 +152,7 @@ class _HomePageState extends State<HomePage>
       bottomNavigationBar: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _isDarkMode ? Colors.grey[850] : Colors.white,
           borderRadius: BorderRadius.circular(35),
           boxShadow: [
             BoxShadow(
@@ -139,12 +165,16 @@ class _HomePageState extends State<HomePage>
         child: ClipRRect(
           borderRadius: BorderRadius.circular(35),
           child: BottomNavigationBar(
+            backgroundColor: _isDarkMode ? Colors.grey[850] : Colors.white,
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
-            selectedItemColor: Colors.green.shade800,
-            unselectedItemColor: Colors.green.shade400,
+            selectedItemColor: _isDarkMode
+                ? Colors.greenAccent
+                : Colors.green.shade800,
+            unselectedItemColor: _isDarkMode
+                ? Colors.white54
+                : Colors.green.shade400,
             showUnselectedLabels: true,
-            backgroundColor: Colors.white,
             type: BottomNavigationBarType.fixed,
             items: const [
               BottomNavigationBarItem(
