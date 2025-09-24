@@ -1,0 +1,146 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Sucursales{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="bi bi-geo-alt me-2"></i>Sucursales</h2>
+        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#crearSucursalModal">
+            <i class="bi bi-plus-lg me-1"></i> Nueva Sucursal
+        </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-2">
+            <input type="text" id="buscarSucursales" class="form-control" placeholder="Buscar sucursal por nombre...">
+        </div>
+    </div>
+
+    <!-- Cards de sucursales -->
+    <div class="row" id="sucursalesContainer">
+        {% for c in sucursales %}
+        <div class="col-sm-6 col-md-4 col-lg-3 mb-4 sucursal-card" data-nombre="{{ c.nombre }}">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title fw-bold text-primary mb-3" style="font-size: 1.25rem;">{{ c.nombre }}</h5>
+                    <div class="mb-2">
+                        <span class="text-muted small">Direccion:</span> {{ c.direccion }}
+                    </div>
+                    <!-- Botones -->
+                    <div class="mt-auto d-flex justify-content-between">
+                        <button class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editarSucursalModal{{ c.id }}">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarSucursalModal{{ c.id }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Editar -->
+        <div class="modal fade" id="editarSucursalModal{{ c.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="id" value="{{ c.id }}">
+                        <input type="hidden" name="editar_sucursal" value="1">
+                        <div class="modal-header bg-warning text-white">
+                            <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Sucursal</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" name="nombre" value="{{ c.nombre }}" class="form-control" placeholder="Nombre del sucursal" required>
+                                <label class="form-label">Direccion</label>
+                                <input type="text" name="direccion" value="{{ c.direccion }}" class="form-control" placeholder="Direccion del sucursal" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Guardar cambios</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Eliminar -->
+        <div class="modal fade" id="eliminarSucursalModal{{ c.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="id" value="{{ c.id }}">
+                        <input type="hidden" name="eliminar_sucursal" value="1">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Eliminar Sucursal</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <p>¿Seguro que quieres eliminar <strong>{{ c.nombre }}</strong>?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Sí, eliminar</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% endfor %}
+    </div>
+
+    <!-- Modal Crear -->
+    <div class="modal fade" id="crearSucursalModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="crear_sucursal" value="1">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="bi bi-plus-lg me-2"></i>Nuevo Sucursal</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        {{ form.as_p }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Script para búsqueda -->
+<script>
+    const buscarInput = document.getElementById('buscarSucursales');
+    const SUCURSALESContainer = document.getElementById('sucursalesContainer');
+    const sucursalCards = SucursalesContainer.querySelectorAll('.sucursal-card');
+
+    function filtrarSucursales() {
+        const search = buscarInput.value.toLowerCase();
+
+        sucursalCards.forEach(card => {
+            const nombre = card.getAttribute('data-nombre').toLowerCase();
+            card.style.display = nombre.includes(search) ? '' : 'none';
+        });
+    }
+
+    buscarInput.addEventListener('input', filtrarSucursales);
+</script>
+
+{% endblock %}

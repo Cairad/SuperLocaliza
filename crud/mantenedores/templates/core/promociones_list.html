@@ -1,0 +1,126 @@
+{% extends 'core/base.html' %}
+{% block title %}Promociones{% endblock %}
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="bi bi-percent"></i>Promociones</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearPromocionModal">Nueva Promoción</button>
+    </div>
+
+    <div class="row" id="promocionesContainer">
+        {% for p in promociones %}
+        <div class="col-sm-6 col-md-4 col-lg-3 mb-4 promocion-card" data-nombre="{{ p.nombre }}">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex flex-column">
+
+                    <!-- Datos de la promoción -->
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="fw-bold">Nombre:</span>
+                        <span>{{ p.nombre }}</span>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="fw-bold">Producto:</span>
+                        <span>{{ p.producto }}</span>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="fw-bold">Descuento:</span>
+                        <span>{{ p.descuento }}%</span>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="fw-bold">Vigencia:</span>
+                        <span>{{ p.fecha_inicio }} - {{ p.fecha_fin }}</span>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="mt-auto d-flex justify-content-between">
+                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editarPromocionModal{{ p.id }}">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarPromocionModal{{ p.id }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Editar -->
+        <div class="modal fade" id="editarPromocionModal{{ p.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="id" value="{{ p.id }}">
+                        <input type="hidden" name="editar_promocion" value="1">
+                        <div class="modal-header bg-warning text-white">
+                            <h5 class="modal-title">Editar Promoción</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            {{ p.form_editar.as_p }}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">Guardar cambios</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Eliminar -->
+        <div class="modal fade" id="eliminarPromocionModal{{ p.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="id" value="{{ p.id }}">
+                        <input type="hidden" name="eliminar_promocion" value="1">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title">Eliminar Promoción</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <p>¿Seguro que quieres eliminar <strong>{{ p.nombre }}</strong>?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% endfor %}
+    </div>
+
+
+    <!-- Modal Crear Promoción -->
+    <div class="modal fade" id="crearPromocionModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="crear_promocion" value="1">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Nueva Promoción</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        {{ form.as_p }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
