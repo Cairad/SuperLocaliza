@@ -41,14 +41,16 @@ class PasilloForm(forms.ModelForm):
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = ['nombre', 'apellido', 'email', 'telefono', 'direccion', 'fecha_nacimiento']
+        fields = ['username','nombre', 'apellido', 'email', 'telefono', 'direccion', 'fecha_nacimiento','password']
         widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'apellido': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
             'direccion': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'fecha_nacimiento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}), 
+            'fecha_nacimiento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'password': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
 
 class SucursalForm(forms.ModelForm):

@@ -1,7 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth.hashers import make_password
 from .models import *
 from .forms import *
+
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.permissions import AllowAny
+from .serializers import *
+from .models import *
+
 # Create your views here.
 @login_required
 def productos_list(request):
@@ -38,6 +46,7 @@ def productos_list(request):
     'estanteria': estanteria,
     'pasillo': pasillo,
     })
+
 @login_required
 def categoria_list(request):
     categorias = Categoria.objects.all()  # 🔹 lista plural
@@ -66,6 +75,7 @@ def categoria_list(request):
         'categorias': categorias,  # 🔹 pasar la lista
         'form': form               # 🔹 pasar el form
     })
+
 @login_required
 def estanteria_list(request):
     estanterias = Estanteria.objects.all()  # 🔹 lista plural
@@ -94,6 +104,7 @@ def estanteria_list(request):
         'estanterias': estanterias,  # 🔹 pasar la lista
         'form': form               # 🔹 pasar el form
     })
+
 @login_required
 def pasillo_list(request):
     pasillos = Pasillo.objects.all()  # 🔹 lista plural
@@ -122,6 +133,7 @@ def pasillo_list(request):
         'pasillos': pasillos,  # 🔹 pasar la lista
         'form': form               # 🔹 pasar el form
     })
+
 @login_required
 def clientes_list(request):
     clientes = Cliente.objects.all()
@@ -132,7 +144,10 @@ def clientes_list(request):
         if "crear_cliente" in request.POST:
             form = ClienteForm(request.POST)
             if form.is_valid():
-                form.save()
+                cliente = form.save(commit=False)
+                # Guardar la contraseña de forma segura
+                cliente.password = make_password(form.cleaned_data['password'])
+                cliente.save()
                 return redirect('cliente_list')
 
         # Editar cliente
@@ -140,8 +155,14 @@ def clientes_list(request):
             cliente = get_object_or_404(Cliente, id=request.POST.get("id"))
             form_editar = ClienteForm(request.POST, instance=cliente)
             if form_editar.is_valid():
-                form_editar.save()
+                cliente_editado = form_editar.save(commit=False)
+                # Solo actualizar la contraseña si se ingresó una nueva
+                password = form_editar.cleaned_data.get('password')
+                if password:
+                    cliente_editado.password = make_password(password)
+                cliente_editado.save()
                 return redirect('cliente_list')
+
 
         # Eliminar cliente
         if "eliminar_cliente" in request.POST:
@@ -157,6 +178,7 @@ def clientes_list(request):
         'clientes': clientes,
         'form': form,
     })
+
 @login_required
 def sucursal_list(request):
     sucursales = Sucursal.objects.all()  # 🔹 lista plural
@@ -185,6 +207,7 @@ def sucursal_list(request):
         'sucursales': sucursales,  # 🔹 pasar la lista
         'form': form               # 🔹 pasar el form
     })
+
 @login_required
 def usuarios_list(request):
     usuarios = Usuario.objects.all()
@@ -223,6 +246,7 @@ def usuarios_list(request):
         'usuarios': usuarios,
         'form': form,  # solo crear
     })
+
 @login_required
 def proveedores_list(request):
     proveedores = Proveedor.objects.all()
@@ -255,6 +279,7 @@ def proveedores_list(request):
         'proveedores': proveedores,
         'form': form,
     })
+
 @login_required
 def promociones_list(request):
     promociones = Promocion.objects.all()
@@ -287,6 +312,7 @@ def promociones_list(request):
         'promociones': promociones,
         'form': form,
     })
+
 @login_required
 def dashboard(request):
     # Traer algunos datos para mostrar resúmenes
@@ -310,3 +336,46 @@ def dashboard(request):
         'ultimas_promociones': ultimas_promociones,
     })
     return render(request, 'core/dashboard.html', {})
+
+#Serializers
+
+class ProductoViewSet(ModelViewSet):
+    queryset = Producto.objects.all()
+    serializer_class = ProductoSerializer
+
+class PromocionViewSet(ModelViewSet):
+    queryset = Promocion.objects.all()
+    serializer_class = PromocionSerializer
+
+class ClienteViewSet(ModelViewSet):
+    queryset = Cliente.objects.all()
+    serializer_class = ClienteSerializer
+
+    def get_permissions(self):
+        if self.action == 'create':  # solo para registrar
+            return [AllowAny()]
+        return super().get_permissions()
+
+class ProveedorViewSet(ModelViewSet):
+    queryset = Proveedor.objects.all()
+    serializer_class = ProveedorSerializer
+
+class SucursalViewSet(ModelViewSet):
+    queryset = Sucursal.objects.all()
+    serializer_class = SucursalSerializer
+
+class CategoriaViewSet(ModelViewSet):
+    queryset = Categoria.objects.all()
+    serializer_class = CategoriaSerializer
+
+class EstanteriaViewSet(ModelViewSet):
+    queryset = Estanteria.objects.all()
+    serializer_class = EstanteriaSerializer
+
+class PasilloViewSet(ModelViewSet):
+    queryset = Pasillo.objects.all()
+    serializer_class = PasilloSerializer
+
+class ClienteTokenObtainPairView(TokenObtainPairView):
+    serializer_class = ClienteTokenSerializer
+

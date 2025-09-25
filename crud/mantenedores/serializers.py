@@ -1,10 +1,13 @@
 from rest_framework import serializers
-from .models import Producto, Promocion, Cliente, Proveedor, Sucursal, Categoria, Estanteria, Pasillo
+from .models import *
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.hashers import check_password
 
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
-        fields = ['id', 'nombre', 'precio', 'stock', 'categoria']
+        fields = ['id', 'nombre', 'precio', 'stock', 'categoria','estanteria', 'pasillo']
 
 class PromocionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,7 +17,25 @@ class PromocionSerializer(serializers.ModelSerializer):
 class ClienteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cliente
-        fields = ['id', 'nombre', 'email', 'telefono']
+        fields = [
+            'id',
+            'username',
+            'nombre',
+            'apellido',
+            'email',
+            'telefono',
+            'direccion',
+            'fecha_nacimiento',
+            'password'
+        ]
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = Cliente.objects.create(**validated_data)
+        user.set_password(password)  # Hashea la contraseña
+        user.save()
+        return user
 
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -43,3 +64,32 @@ class PasilloSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pasillo
         fields = ['id', 'nombre']
+
+class ClienteTokenSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+    access = serializers.CharField(read_only=True)
+    refresh = serializers.CharField(read_only=True)
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        try:
+            cliente = Cliente.objects.get(username=username)
+        except Cliente.DoesNotExist:
+            raise serializers.ValidationError("Usuario o contraseña incorrecta")
+
+        if not check_password(password, cliente.password):
+            raise serializers.ValidationError("Usuario o contraseña incorrecta")
+
+        # Crear tokens JWT manualmente
+        refresh = RefreshToken.for_user(cliente)  # Necesitas que Cliente herede de AbstractBaseUser
+        access = refresh.access_token
+
+        return {
+            'access': str(access),
+            'refresh': str(refresh),
+        }
+    
+    

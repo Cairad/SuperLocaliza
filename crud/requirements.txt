@@ -1,0 +1,28 @@
+# Django core
+Django
+
+# Base de datos
+psycopg2-binary  # Si usas PostgreSQL
+
+# API REST
+djangorestframework
+djangorestframework-simplejwt  # Para autenticación JWT en Flutter
+
+# Serializadores JSON
+django-cors-headers   # Para permitir requests desde Flutter
+djangorestframework-jsonapi # Opcional, si quieres usar JSON:API
+
+# Validaciones y utilidades
+django-cleanup      # Para borrar archivos asociados automáticamente
+django-environ      # Para manejar variables de entorno (DB, secret key)
+django-extensions     # Comandos extra útiles (shell_plus, runserver_plus, etc.)
+
+# Seguridad
+bcrypt                # Para hash de contraseñas (opcional, Django ya usa PBKDF2 por defecto)
+
+# Mejoras de UI en Django Admin o CRUD
+django-widget-tweaks # Para personalizar formularios en templates
+django-filter        # Para filtros en vistas y APIs
+
+# Optimización de queries
+django-debug-toolbar # Opcional, para desarrollo y detectar N+1 queries

@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'login.dart';
 import 'search.dart';
 import 'map.dart';
 import 'notifications.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final VoidCallback toggleTheme;
+  const HomePage({super.key, required this.toggleTheme});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  HomePageState createState() => HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
+class HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
-  bool _isDarkMode = false; // Switch de tema
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -28,6 +30,7 @@ class _HomePageState extends State<HomePage>
   @override
   void initState() {
     super.initState();
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -44,12 +47,6 @@ class _HomePageState extends State<HomePage>
     _animationController.forward();
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -58,10 +55,30 @@ class _HomePageState extends State<HomePage>
     });
   }
 
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('accessToken');
+    await prefs.remove('refreshToken');
+
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => LoginScreen(toggleTheme: widget.toggleTheme),
+      ),
+      (route) => false,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _isDarkMode ? Colors.black : Colors.green.shade50,
+      // AppBar moderno
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(90),
         child: AppBar(
@@ -70,54 +87,46 @@ class _HomePageState extends State<HomePage>
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
           ),
-          backgroundColor: _isDarkMode
-              ? Colors.grey[900]
-              : Colors.green.shade700,
-          flexibleSpace: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Logo
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.2),
-                    ),
-                    child: const Icon(
-                      Icons.local_grocery_store,
-                      size: 36,
-                      color: Colors.white,
-                    ),
-                  ),
-                  // Switch de tema
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Transform.scale(
-                      scale: 0.9, // hace el switch un poco más compacto
-                      child: Switch(
-                        value: _isDarkMode,
-                        onChanged: (value) {
-                          setState(() {
-                            _isDarkMode = value;
-                          });
-                        },
-                        activeTrackColor: Colors.green.shade400,
-                        activeThumbColor: Colors.green.shade700,
-                        inactiveThumbColor: Colors.white,
-                        inactiveTrackColor: Colors.white54,
-                      ),
-                    ),
-                  ),
-                ],
+          backgroundColor: Colors.green.shade700,
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.2),
+                ),
+                child: const Icon(
+                  Icons.local_grocery_store,
+                  size: 36,
+                  color: Colors.white,
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              const Text(
+                "SúperLocaliza",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.brightness_6, color: Colors.white),
+              tooltip: "Cambiar tema",
+              onPressed: widget.toggleTheme,
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              tooltip: "Cerrar sesión",
+              onPressed: logout,
+            ),
+          ],
         ),
       ),
+
+      // Body con animaciones y bordes redondeados
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: ScaleTransition(
@@ -129,9 +138,7 @@ class _HomePageState extends State<HomePage>
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: _isDarkMode
-                        ? [Colors.grey.shade900, Colors.black]
-                        : [Colors.white, Colors.green.shade50],
+                    colors: [Colors.white, Colors.green.shade50],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -149,10 +156,13 @@ class _HomePageState extends State<HomePage>
           ),
         ),
       ),
+
+      // BottomNavigationBar estilizado
       bottomNavigationBar: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: _isDarkMode ? Colors.grey[850] : Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(35),
           boxShadow: [
             BoxShadow(
@@ -162,32 +172,37 @@ class _HomePageState extends State<HomePage>
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(35),
-          child: BottomNavigationBar(
-            backgroundColor: _isDarkMode ? Colors.grey[850] : Colors.white,
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            selectedItemColor: _isDarkMode
-                ? Colors.greenAccent
-                : Colors.green.shade800,
-            unselectedItemColor: _isDarkMode
-                ? Colors.white54
-                : Colors.green.shade400,
-            showUnselectedLabels: true,
-            type: BottomNavigationBarType.fixed,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.search),
-                label: 'Buscar',
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            IconButton(
+              icon: Icon(
+                Icons.search,
+                color: _selectedIndex == 0
+                    ? Colors.green.shade800
+                    : Colors.green.shade400,
               ),
-              BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.notifications),
-                label: 'Notificaciones',
+              onPressed: () => _onItemTapped(0),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.map,
+                color: _selectedIndex == 1
+                    ? Colors.green.shade800
+                    : Colors.green.shade400,
               ),
-            ],
-          ),
+              onPressed: () => _onItemTapped(1),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.notifications,
+                color: _selectedIndex == 2
+                    ? Colors.green.shade800
+                    : Colors.green.shade400,
+              ),
+              onPressed: () => _onItemTapped(2),
+            ),
+          ],
         ),
       ),
     );
