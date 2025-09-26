@@ -12,6 +12,7 @@ urlpatterns = [
     path('usuario/', views.usuarios_list, name='usuarios_list'),
     path('proveedor/', views.proveedores_list, name='proveedores_list'),
     path('promocion/', views.promociones_list, name='promociones_list'),
+    path('api/token/refresh/', views.CustomTokenRefreshView.as_view(), name='token_refresh'),
 
     path('login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),

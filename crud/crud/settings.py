@@ -10,9 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
-
-AUTH_USER_MODEL = 'mantenedores.Usuario'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,7 +26,7 @@ SECRET_KEY = 'django-insecure-(_h-h7a+c+trrdxy^z#&pam@1xur8aakx&0+bw0&$y#5(5v2da
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.92', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['192.168.1.86', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -116,14 +115,27 @@ LOGIN_URL = 'login'
 # Logout redirige automáticamente (ya lo hicimos en urls)
 LOGOUT_REDIRECT_URL = 'login'
 
+AUTH_USER_MODEL = 'mantenedores.Cliente'
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-    )
+    ),
 }
+
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'USER_ID_FIELD': 'id',  # Usa PK de Cliente
+    'USER_ID_CLAIM': 'user_id',
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

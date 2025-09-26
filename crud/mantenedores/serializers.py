@@ -1,13 +1,26 @@
 from rest_framework import serializers
 from .models import *
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.hashers import check_password
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.exceptions import InvalidToken
 
 class ProductoSerializer(serializers.ModelSerializer):
+    precio_con_descuento = serializers.SerializerMethodField()
+
     class Meta:
         model = Producto
-        fields = ['id', 'nombre', 'precio', 'stock', 'categoria','estanteria', 'pasillo']
+        fields = ['id', 'nombre', 'precio', 'precio_con_descuento', 'stock', 'categoria', 'estanteria', 'pasillo']
+
+    def get_precio_con_descuento(self, obj):
+        # obj.precio_con_descuento devuelve Decimal
+        precio = obj.precio_con_descuento
+        # Convertir a float para JSON (o str si prefieres mantener exactitud)
+        try:
+            return float(precio)
+        except Exception:
+            # fallback (siempre se envía algo)
+            return str(precio)
 
 class PromocionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -92,4 +105,9 @@ class ClienteTokenSerializer(serializers.Serializer):
             'refresh': str(refresh),
         }
     
-    
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except Cliente.DoesNotExist:
+            raise InvalidToken("El usuario no existe o fue eliminado")

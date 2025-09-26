@@ -1,7 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView
 from django.contrib.auth.hashers import make_password
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework.response import Response
+from rest_framework import status
 from .models import *
 from .forms import *
 
@@ -337,6 +341,7 @@ def dashboard(request):
     })
     return render(request, 'core/dashboard.html', {})
 
+
 #Serializers
 
 class ProductoViewSet(ModelViewSet):
@@ -379,3 +384,14 @@ class PasilloViewSet(ModelViewSet):
 class ClienteTokenObtainPairView(TokenObtainPairView):
     serializer_class = ClienteTokenSerializer
 
+class CustomTokenRefreshView(TokenRefreshView):
+    serializer_class = CustomTokenRefreshSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception:
+            return Response(
+                {"detail": "Refresh token inválido o usuario no existe"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )

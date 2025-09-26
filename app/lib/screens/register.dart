@@ -75,7 +75,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       return;
     }
 
-    final url = Uri.parse('http://192.168.1.92:8000/api/clientes/');
+    final url = Uri.parse('http://192.168.1.86:8000/api/clientes/');
     try {
       final response = await http.post(
         url,

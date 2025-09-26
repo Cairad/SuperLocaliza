@@ -1,337 +1,286 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductLocation {
-  final int aisle; // pasillo (1..3)
-  final int shelf; // estante (1..6, ahora dividido)
+  final String id;
   final String name;
-  const ProductLocation({
-    required this.aisle,
-    required this.shelf,
-    required this.name,
-  });
+  const ProductLocation({required this.id, required this.name});
 }
 
-class MapScreen extends StatefulWidget {
-  final String? highlightedProduct;
+// 🔹 Mapeo de bloques a productos de ejemplo (opcional, se puede eliminar)
+const Map<String, List<String>> productsMap = {
+  "milk": ["Leche", "Yogurt"],
+  "deli": ["Jamón", "Queso"],
+  "bakery": ["Pan", "Croissant"],
+  "fruit": ["Manzana", "Pera"],
+  "checkout": ["Caja 1", "Caja 2"],
+};
+
+// 🔹 Mapeo de productos a pasillo/estantería
+final Map<String, Map<String, int>> productLocationMapping = {
+  "milk": {"pasillo": 1, "estanteria": 1},
+  "deli": {"pasillo": 1, "estanteria": 2},
+  "bakery": {"pasillo": 2, "estanteria": 1},
+  "fruit": {"pasillo": 2, "estanteria": 2},
+  "checkout": {"pasillo": 3, "estanteria": 1},
+};
+
+final Map<String, int> idToPasillo = {
+  "milk": 1,
+  "deli": 1,
+  "bakery": 2,
+  "fruit": 2,
+  "checkout": 3,
+};
+
+final Map<String, int> idToEstanteria = {
+  "milk": 1,
+  "deli": 2,
+  "bakery": 1,
+  "fruit": 2,
+  "checkout": 1,
+};
+
+class MapScreen extends StatelessWidget {
+  final Map<String, dynamic>? highlightedProduct;
   const MapScreen({super.key, this.highlightedProduct});
 
-  @override
-  State<MapScreen> createState() => _MapScreenState();
-}
+  // 🔹 Verifica si un bloque debe estar resaltado
+  bool _isHighlighted(String id) {
+    if (highlightedProduct == null) return false;
 
-class _MapScreenState extends State<MapScreen> {
-  ProductLocation? _location;
+    // Tomamos el pasillo y estantería del producto directamente
+    final prodPasillo =
+        int.tryParse(highlightedProduct!['pasillo'].toString()) ?? 0;
+    final prodEstante =
+        int.tryParse(highlightedProduct!['estanteria'].toString()) ?? 0;
 
-  // Catálogo DEMO -> mapea productos a Pasillo/Estante
-  static const Map<String, ProductLocation> _demoCatalog = {
-    "Leche": ProductLocation(aisle: 1, shelf: 1, name: "Leche"),
-    "Pan": ProductLocation(aisle: 2, shelf: 1, name: "Pan"),
-    "Arroz": ProductLocation(aisle: 1, shelf: 3, name: "Arroz"),
-    "Huevos": ProductLocation(aisle: 3, shelf: 1, name: "Huevos"),
-    "Frutas": ProductLocation(aisle: 2, shelf: 2, name: "Frutas"),
-    "Verduras": ProductLocation(aisle: 3, shelf: 2, name: "Verduras"),
-    "Azúcar": ProductLocation(aisle: 3, shelf: 3, name: "Azúcar"),
-  };
+    final blockPasillo = idToPasillo[id] ?? 0;
+    final blockEstante = idToEstanteria[id] ?? 0;
 
-  // Productos por pasillo y estante
-  static const Map<int, Map<int, List<String>>> aisleShelfProducts = {
-    1: {
-      1: ["Leche"],
-      2: ["Huevos"],
-      3: ["Arroz"],
-      4: [],
-      5: [],
-      6: [],
-    },
-    2: {
-      1: ["Pan"],
-      2: ["Frutas"],
-      3: [],
-      4: [],
-      5: [],
-      6: [],
-    },
-    3: {
-      1: ["Huevos"],
-      2: ["Verduras"],
-      3: ["Azúcar"],
-      4: [],
-      5: [],
-      6: [],
-    },
-  };
+    return prodPasillo == blockPasillo && prodEstante == blockEstante;
+  }
 
-  @override
-  void initState() {
-    super.initState();
-    if (widget.highlightedProduct != null) {
-      _location = _demoCatalog[widget.highlightedProduct!];
+  // 🔹 Función para mostrar productos de un estante desde la API
+  void _showProductsByShelf(BuildContext context, String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('accessToken');
+    final refreshToken = prefs.getString('refreshToken');
+
+    if (token == null || refreshToken == null) return;
+
+    final url = Uri.parse('http://192.168.1.86:8000/api/productos/');
+    var response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    List<Map<String, dynamic>> allProducts = [];
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      allProducts = data.cast<Map<String, dynamic>>();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error al obtener productos: ${response.statusCode}"),
+        ),
+      );
+      return;
     }
-  }
 
-  bool _isHighlighted(int aisle, int shelf) {
-    return _location != null &&
-        _location!.aisle == aisle &&
-        _location!.shelf == shelf;
-  }
+    // 🔹 Filtrar productos por pasillo y estante
+    final pasillo = idToPasillo[id] ?? 0;
+    final estante = idToEstanteria[id] ?? 0;
 
-  void _showProducts(int aisle, int shelf) {
-    final products = aisleShelfProducts[aisle]?[shelf] ?? [];
-    showDialog(
+    final productsInShelf = allProducts.where((p) {
+      final pPasillo = int.tryParse(p['pasillo'].toString()) ?? 0;
+      final pEstante = int.tryParse(p['estanteria'].toString()) ?? 0;
+      return pPasillo == pasillo && pEstante == estante;
+    }).toList();
+
+    // 🔹 Mostrar productos en modal
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Pasillo $aisle • Estante $shelf"),
-        content: products.isEmpty
-            ? const Text("No hay productos")
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: productsInShelf.isEmpty
+            ? const Text("No hay productos en este estante")
             : Column(
                 mainAxisSize: MainAxisSize.min,
-                children: products.map((p) => Text("- $p")).toList(),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: productsInShelf.map((product) {
+                  double precio =
+                      double.tryParse(product['precio'].toString()) ?? 0.0;
+                  String precioFormateado = (precio % 1 == 0)
+                      ? precio.toInt().toString()
+                      : precio.toString();
+
+                  return ListTile(
+                    title: Text(product['nombre']),
+                    subtitle: Text(
+                      "Precio: \$${precioFormateado} | Stock: ${product['stock']}",
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.map),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                MapScreen(highlightedProduct: product),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }).toList(),
               ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cerrar"),
+      ),
+    );
+  }
+
+  Widget _zoneBlock(BuildContext context, String id, {required Color color}) {
+    final isHighlighted = _isHighlighted(id);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _showProductsByShelf(context, id),
+        child: Container(
+          height: 80,
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isHighlighted ? color : color.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isHighlighted ? Colors.black : Colors.grey.shade400,
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isHighlighted ? color.withOpacity(0.5) : Colors.black12,
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
+          child: Center(
+            child: Text(
+              id.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _pasilloVertical() {
+    return const SizedBox(
+      width: 24,
+      child: Center(
+        child: Icon(Icons.arrow_upward, size: 16, color: Colors.grey),
+      ),
+    );
+  }
+
+  Widget _flechasHorizontales() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.arrow_back, size: 16, color: Colors.grey),
+          SizedBox(width: 4),
+          Text(
+            "Pasillo horizontal",
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+          SizedBox(width: 4),
+          Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
         ],
       ),
+    );
+  }
+
+  Widget _rowWithPasillo(
+    BuildContext context,
+    String leftId,
+    String rightId, {
+    required Color leftColor,
+    required Color rightColor,
+  }) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            _zoneBlock(context, leftId, color: leftColor),
+            _pasilloVertical(),
+            _zoneBlock(context, rightId, color: rightColor),
+          ],
+        ),
+        _flechasHorizontales(),
+      ],
+    );
+  }
+
+  Widget _buildMap(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        _rowWithPasillo(
+          context,
+          "milk",
+          "deli",
+          leftColor: Colors.orange,
+          rightColor: Colors.redAccent,
+        ),
+        _rowWithPasillo(
+          context,
+          "bakery",
+          "fruit",
+          leftColor: Colors.amber,
+          rightColor: Colors.green,
+        ),
+        _rowWithPasillo(
+          context,
+          "checkout",
+          "checkout",
+          leftColor: Colors.black,
+          rightColor: Colors.black,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _zoneBlock(context, "entrada", color: Colors.blueAccent),
+            _pasilloVertical(),
+            _zoneBlock(context, "salida", color: Colors.brown),
+          ],
+        ),
+        _flechasHorizontales(),
+        const SizedBox(height: 24),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.green.shade50,
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Column(
-          children: [
-            if (_location != null) _LocationBadge(location: _location!),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                _LegendChip(text: "Pasillo 1"),
-                _LegendChip(text: "Pasillo 2"),
-                _LegendChip(text: "Pasillo 3"),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final spacing = 12.0;
-                  final cols = 3;
-                  final rows = 6; // ahora 6 estantes por pasillo
-                  final cellWidth =
-                      (constraints.maxWidth - spacing * (cols - 1)) / cols;
-                  final cellHeight =
-                      (constraints.maxHeight - spacing * (rows - 1)) / rows;
-
-                  return Column(
-                    children: List.generate(rows, (rowIndex) {
-                      final shelf = rowIndex + 1; // 1..6
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: rowIndex == rows - 1 ? 0 : spacing,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: List.generate(cols, (colIndex) {
-                            final aisle = colIndex + 1;
-                            final highlighted = _isHighlighted(aisle, shelf);
-                            return _MapCell(
-                              width: cellWidth,
-                              height: cellHeight,
-                              aisle: aisle,
-                              shelf: shelf,
-                              highlighted: highlighted,
-                              onTap: () {
-                                setState(() {
-                                  _location = ProductLocation(
-                                    aisle: aisle,
-                                    shelf: shelf,
-                                    name: _demoCatalog.values
-                                        .firstWhere(
-                                          (p) =>
-                                              p.aisle == aisle &&
-                                              p.shelf == shelf,
-                                          orElse: () => ProductLocation(
-                                            aisle: aisle,
-                                            shelf: shelf,
-                                            name: "",
-                                          ),
-                                        )
-                                        .name,
-                                  );
-                                });
-                                _showProducts(aisle, shelf);
-                              },
-                            );
-                          }),
-                        ),
-                      );
-                    }),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MapCell extends StatelessWidget {
-  final double width;
-  final double height;
-  final int aisle;
-  final int shelf;
-  final bool highlighted;
-  final VoidCallback onTap;
-
-  const _MapCell({
-    required this.width,
-    required this.height,
-    required this.aisle,
-    required this.shelf,
-    required this.highlighted,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final baseBorder = Border.all(color: Colors.grey.shade300, width: 1.5);
-    final highlightBorder = Border.all(
-      color: Colors.green.shade800,
-      width: 2.5,
-    );
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: highlighted ? Colors.green.shade100 : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: highlighted ? highlightBorder : baseBorder,
-            boxShadow: [
-              BoxShadow(
-                color: highlighted
-                    ? Colors.green.withOpacity(0.25)
-                    : Colors.black12,
-                blurRadius: highlighted ? 10 : 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(10),
-          child: Stack(
-            children: [
-              Align(
-                alignment: Alignment.topLeft,
-                child: Text(
-                  "P$aisle",
-                  style: TextStyle(
-                    color: highlighted
-                        ? Colors.green.shade900
-                        : Colors.grey.shade700,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Text(
-                  "E$shelf",
-                  style: TextStyle(
-                    color: highlighted
-                        ? Colors.green.shade900
-                        : Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              if (highlighted)
-                Align(
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.location_on,
-                    color: Colors.green.shade800,
-                    size: 28,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LocationBadge extends StatelessWidget {
-  final ProductLocation location;
-  const _LocationBadge({required this.location});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: Colors.green.shade200),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.info, color: Colors.green.shade700, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            "${location.name.isNotEmpty ? "${location.name} • " : ""}"
-            "Pasillo ${location.aisle} · Estante ${location.shelf}",
-            style: TextStyle(
-              color: Colors.green.shade900,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LegendChip extends StatelessWidget {
-  final String text;
-  const _LegendChip({required this.text});
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      label: Text(
-        text,
-        style: TextStyle(
-          color: Colors.green.shade900,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      backgroundColor: Colors.white,
-      side: BorderSide(color: Colors.green.shade200),
-      elevation: 0,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: VisualDensity.compact,
+      backgroundColor: Colors.grey.shade100,
+      body: SafeArea(child: SingleChildScrollView(child: _buildMap(context))),
     );
   }
 }

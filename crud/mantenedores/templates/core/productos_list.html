@@ -62,7 +62,7 @@
                             <span class="text-muted text-decoration-line-through">${{ p.precio|floatformat:"g" }}</span>
                             <span class="text-danger">${{ p.precio_con_descuento|floatformat:"g" }}</span>
                         {% else %}
-                            <span>${{ p.precio|floatformat:2 }}</span>
+                            <span>${{ p.precio|floatformat:"g" }}</span>
                         {% endif %}
                     </div>
 

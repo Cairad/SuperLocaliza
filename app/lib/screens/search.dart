@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'map.dart'; // Importa el mapa para navegar
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'map.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -11,20 +15,13 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController searchController = TextEditingController();
-  List<String> results = [];
+  List<Map<String, dynamic>> products = [];
+  List<Map<String, dynamic>> filteredProducts = [];
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // Diccionario simulado de productos y ubicaciones
-  final Map<String, Map<String, dynamic>> productData = {
-    "Leche": {"desc": "Leche entera 1L", "pasillo": 1, "estante": 2},
-    "Pan": {"desc": "Pan integral 500g", "pasillo": 2, "estante": 1},
-    "Arroz": {"desc": "Arroz grano largo 1kg", "pasillo": 3, "estante": 2},
-    "Huevos": {"desc": "Docena de huevos frescos", "pasillo": 1, "estante": 3},
-    "Frutas": {"desc": "Manzanas rojas 1kg", "pasillo": 2, "estante": 2},
-    "Verduras": {"desc": "Lechuga fresca", "pasillo": 3, "estante": 1},
-  };
+  late Timer _autoRefreshTimer;
 
   @override
   void initState() {
@@ -37,20 +34,99 @@ class _SearchScreenState extends State<SearchScreen>
       parent: _animationController,
       curve: Curves.easeIn,
     );
+
+    _fetchProducts();
+
+    // 🔹 Configurar refresco automático cada 5 segundos
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _fetchProducts();
+    });
   }
 
-  void searchProduct() {
+  // 🔹 Función para traer productos desde la API Django
+  Future<void> _fetchProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('accessToken');
+    final refreshToken = prefs.getString('refreshToken');
+
+    if (token == null || refreshToken == null) {
+      await _logout();
+      return;
+    }
+
+    final url = Uri.parse('http://192.168.1.86:8000/api/productos/');
+    var response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      setState(() {
+        products = data.cast<Map<String, dynamic>>();
+        filteredProducts = List.from(products);
+      });
+    } else if (response.statusCode == 401) {
+      // Token expirado → refresh
+      final refreshUrl = Uri.parse(
+        'http://192.168.1.86:8000/api/token/refresh/',
+      );
+      final refreshResponse = await http.post(
+        refreshUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': refreshToken}),
+      );
+
+      if (refreshResponse.statusCode == 200) {
+        final newToken = jsonDecode(refreshResponse.body)['access'];
+        await prefs.setString('accessToken', newToken);
+        _fetchProducts(); // reintentar
+      } else {
+        await _logout();
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error al obtener productos: ${response.statusCode}"),
+        ),
+      );
+    }
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('accessToken');
+    await prefs.remove('refreshToken');
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Sesión expirada. Inicia sesión nuevamente."),
+      ),
+    );
+  }
+
+  // 🔹 Función de búsqueda
+  void _searchProduct() {
+    final query = searchController.text.toLowerCase();
     setState(() {
-      String query = searchController.text.toLowerCase();
-      results = productData.keys
-          .where((p) => p.toLowerCase().contains(query))
+      filteredProducts = products
+          .where((p) => p['nombre'].toString().toLowerCase().contains(query))
           .toList();
       _animationController.forward(from: 0);
     });
   }
 
-  void showProductInfo(String product) {
-    final data = productData[product]!;
+  // 🔹 Mostrar información del producto en modal
+  void _showProductInfo(Map<String, dynamic> product) {
+    double precio = double.tryParse(product['precio'].toString()) ?? 0.0;
+    String precioFormateado = (precio % 1 == 0)
+        ? precio.toInt().toString()
+        : precio.toString();
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -66,31 +142,78 @@ class _SearchScreenState extends State<SearchScreen>
               children: [
                 Icon(Icons.local_grocery_store, color: Colors.green.shade700),
                 const SizedBox(width: 10),
-                Text(
-                  product,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green.shade900,
+                Expanded(
+                  child: Text(
+                    product['nombre'],
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green.shade900,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
+            // 🔹 Validar si existe precio con descuento
+            if (double.tryParse(
+                      product['precio_con_descuento']?.toString() ?? '',
+                    ) !=
+                    null &&
+                double.parse(product['precio_con_descuento'].toString()) <
+                    double.parse(product['precio'].toString()))
+              Row(
+                children: [
+                  Text(
+                    "\$${precio.toInt()}",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey,
+                      decoration: TextDecoration.lineThrough, // 🔹 Tachado
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    "\$${double.parse(product['precio_con_descuento'].toString()).toInt()}",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.red, // 🔹 Precio promocional en rojo
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                "\$${precioFormateado}",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green.shade800,
+                ),
+              ),
+
+            const SizedBox(height: 5),
             Text(
-              data["desc"],
+              "Stock: ${product['stock']}",
               style: TextStyle(fontSize: 16, color: Colors.grey.shade800),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 5),
             Text(
-              "📍 Ubicación: Pasillo ${data["pasillo"]}, Estante ${data["estante"]}",
+              "Categoría: ${product['categoria'] ?? 'N/A'}",
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade800),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              "Ubicación: Pasillo ${product['pasillo']}, Estante ${product['estanteria']}",
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.green.shade700,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
             Center(
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -109,7 +232,7 @@ class _SearchScreenState extends State<SearchScreen>
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
                 onPressed: () {
-                  Navigator.pop(context); // Cierra el modal
+                  Navigator.pop(context);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -129,6 +252,7 @@ class _SearchScreenState extends State<SearchScreen>
   void dispose() {
     searchController.dispose();
     _animationController.dispose();
+    _autoRefreshTimer.cancel(); // Cancelar el timer al cerrar la pantalla
     super.dispose();
   }
 
@@ -154,7 +278,7 @@ class _SearchScreenState extends State<SearchScreen>
               ),
               child: TextField(
                 controller: searchController,
-                onSubmitted: (_) => searchProduct(),
+                onSubmitted: (_) => _searchProduct(),
                 decoration: InputDecoration(
                   hintText: "Buscar producto...",
                   prefixIcon: Icon(Icons.search, color: Colors.green.shade700),
@@ -163,7 +287,7 @@ class _SearchScreenState extends State<SearchScreen>
                       Icons.arrow_forward,
                       color: Colors.green.shade700,
                     ),
-                    onPressed: searchProduct,
+                    onPressed: _searchProduct,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
@@ -180,11 +304,16 @@ class _SearchScreenState extends State<SearchScreen>
               opacity: _fadeAnimation,
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: results.length,
+                itemCount: filteredProducts.length,
                 itemBuilder: (context, index) {
-                  String product = results[index];
+                  final product = filteredProducts[index];
+                  double precio =
+                      double.tryParse(product['precio'].toString()) ?? 0.0;
+                  String precioFormateado = (precio % 1 == 0)
+                      ? precio.toInt().toString()
+                      : precio.toString();
                   return GestureDetector(
-                    onTap: () => showProductInfo(product),
+                    onTap: () => _showProductInfo(product),
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       padding: const EdgeInsets.all(16),
@@ -206,14 +335,55 @@ class _SearchScreenState extends State<SearchScreen>
                             color: Colors.green.shade700,
                           ),
                           const SizedBox(width: 16),
-                          Text(
-                            product,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.green.shade900,
+                          Expanded(
+                            child: Text(
+                              product['nombre'],
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.green.shade900,
+                              ),
                             ),
                           ),
+                          // 🔹 Precio con descuento en modal
+                          if (double.tryParse(
+                                    product['precio_con_descuento']
+                                            ?.toString() ??
+                                        '',
+                                  ) !=
+                                  null &&
+                              double.parse(
+                                    product['precio_con_descuento'].toString(),
+                                  ) <
+                                  double.parse(product['precio'].toString()))
+                            Row(
+                              children: [
+                                Text(
+                                  "\$${precio.toInt()} ",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                                Text(
+                                  "\$${double.parse(product['precio_con_descuento'].toString()).toInt()}",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Text(
+                              "\$${precioFormateado}",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
                         ],
                       ),
                     ),
