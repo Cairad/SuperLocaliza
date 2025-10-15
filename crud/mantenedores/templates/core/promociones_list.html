@@ -1,0 +1,229 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Promociones{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="bi bi-percent"></i>Promociones</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearPromocionModal">Nueva
+            Promoción</button>
+    </div>
+
+    <div class="row" id="promocionesContainer">
+        {% for p in promociones %}
+        <div class="col-sm-6 col-md-4 col-lg-3 mb-4 promocion-card" data-nombre="{{ p.nombre }}">
+            <div class="card h-100 shadow-sm border-0 position-relative">
+
+                {% if p.is_active %}
+                <span class="position-absolute top-0 end-0 m-0 badge rounded-pill bg-success">
+                    Activa
+                </span>
+                {% else %}
+                <span class="position-absolute top-0 end-0 m-0 badge rounded-pill bg-secondary">
+                    Vencida
+                </span>
+                {% endif %}
+
+                <div class="card-body d-flex flex-column">
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="fw-bold">Nombre:</span>
+                        <span>{{ p.nombre }}</span>
+                    </div>
+
+                    <div class="mb-2">
+                        <span class="fw-bold">Descripción:</span>
+                        <p class="mb-0 description-text small"
+                            data-full-text="{{ p.descripcion|default:'Sin descripción' }}">
+                            {{ p.descripcion|default:'Sin descripción' }}
+                        </p>
+                    </div>
+
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="fw-bold">Producto:</span>
+                        <span>{{ p.producto }}</span>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="fw-bold">Descuento:</span>
+                        <span>{{ p.descuento|floatformat:"g" }}%</span>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="fw-bold">Vigencia:</span>
+                        <span>{{ p.fecha_inicio|date:"d/m/Y" }} - {{ p.fecha_fin|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="mt-auto d-flex justify-content-between">
+                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#editarPromocionModal{{ p.id }}">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#eliminarPromocionModal{{ p.id }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="editarPromocionModal{{ p.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="id" value="{{ p.id }}">
+                        <input type="hidden" name="editar_promocion" value="1">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title">Editar Promoción</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            {{ p.form_editar.as_p }}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">Guardar cambios</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="eliminarPromocionModal{{ p.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="id" value="{{ p.id }}">
+                        <input type="hidden" name="eliminar_promocion" value="1">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title">Eliminar Promoción</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <p class="fs-5">¿Seguro que quieres eliminar la promoción <strong>"{{ p.nombre }}"</strong>?
+                            </p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="modal fade" id="crearPromocionModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="crear_promocion" value="1">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Nueva Promoción</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="id_nombre" class="form-label">Nombre</label>
+                            {{ form.nombre }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_descripcion" class="form-label">Descripción</label>
+                            {{ form.descripcion }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_producto" class="form-label">Producto</label>
+                            {{ form.producto }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_descuento" class="form-label">Descuento (%)</label>
+                            {{ form.descuento }}
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_fecha_inicio" class="form-label">Fecha de Inicio</label>
+                                {{ form.fecha_inicio }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="id_fecha_fin" class="form-label">Fecha de Fin</label>
+                                {{ form.fecha_fin }}
+                                <div class="invalid-feedback">
+                                    La fecha de fin no puede ser anterior a la fecha de inicio.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const descriptionLimit = 40;
+        document.querySelectorAll('.description-text').forEach(desc => {
+            const fullText = desc.dataset.fullText;
+            if (fullText && fullText.length > descriptionLimit) {
+                const shortText = fullText.substring(0, descriptionLimit) + '...';
+                desc.textContent = shortText;
+
+                const toggleButton = document.createElement('a');
+                toggleButton.href = '#';
+                toggleButton.textContent = 'Ver más';
+                toggleButton.classList.add('small', 'text-primary', 'd-block', 'mt-1');
+
+                toggleButton.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (desc.textContent === shortText) {
+                        desc.textContent = fullText;
+                        toggleButton.textContent = 'Ver menos';
+                    } else {
+                        desc.textContent = shortText;
+                        toggleButton.textContent = 'Ver más';
+                    }
+                });
+                desc.parentNode.insertBefore(toggleButton, desc.nextSibling);
+            }
+        });
+
+        const forms = document.querySelectorAll('.needs-validation');
+        forms.forEach(form => {
+            const startDateInput = form.querySelector('[name="fecha_inicio"]');
+            const endDateInput = form.querySelector('[name="fecha_fin"]');
+
+            if (startDateInput && endDateInput) {
+                const validateDates = () => {
+                    if (endDateInput.value && startDateInput.value && endDateInput.value < startDateInput.value) {
+                        endDateInput.setCustomValidity('Inválido');
+                    } else {
+                        endDateInput.setCustomValidity('');
+                    }
+                };
+                startDateInput.addEventListener('change', validateDates);
+                endDateInput.addEventListener('change', validateDates);
+            }
+
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

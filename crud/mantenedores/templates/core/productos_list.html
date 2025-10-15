@@ -1,0 +1,226 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Productos{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="bi bi-box-seam me-2"></i>Productos</h2>
+        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#crearProductoModal">
+            <i class="bi bi-plus-lg me-1"></i> Nuevo Producto
+        </button>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-2">
+            <input type="text" id="buscarProducto" class="form-control" placeholder="Buscar producto por nombre...">
+        </div>
+        <div class="col-md-6 mb-2">
+            <select id="filtrarCategoria" class="form-select">
+                <option value="">Filtrar por categoría</option>
+                {% for c in categorias %}
+                    <option value="{{ c.nombre }}">{{ c.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="row" id="productosContainer">
+        {% for p in productos %}
+        <div class="col-sm-6 col-md-4 col-lg-3 mb-4 producto-card" data-nombre="{{ p.nombre }}" data-categoria="{{ p.categoria.nombre }}">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex flex-column">
+                    
+                    <h5 class="card-title fw-bold text-primary mb-3" style="font-size: 1.25rem;">{{ p.nombre }}</h5>
+                    
+                    <div class="mb-2">
+                        <span class="text-muted small">Descripcion:</span>
+                        <p class="fw-semibold mb-0 description-text" data-full-text="{{ p.descripcion }}">{{ p.descripcion }}</p>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Categoría:</span>
+                        <span class="fw-semibold">{{ p.categoria.nombre }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Estanteria:</span>
+                        <span class="fw-semibold">{{ p.estanteria.nombre }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Pasillo:</span>
+                        <span class="fw-semibold">{{ p.pasillo.nombre }}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Precio:</span>
+                        <div class="d-flex flex-column align-items-end">
+                            {% with precio_original=p.precio precio_descuento=p.precio_con_descuento %}
+                                {% if precio_descuento < precio_original %}
+                                    <span class="text-danger fw-bold">${{ precio_descuento|floatformat:'g' }}</span>
+                                    <span class="text-muted small text-decoration-line-through">${{ precio_original|floatformat:'g' }}</span>
+                                {% else %}
+                                    <span class="fw-semibold">${{ precio_original|floatformat:'g' }}</span>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-auto d-flex justify-content-between">
+                        <button class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editarProductoModal{{ p.id }}">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarProductoModal{{ p.id }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="editarProductoModal{{ p.id }}" tabindex="-1">
+             <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="id" value="{{ p.id }}">
+                        <input type="hidden" name="editar_producto" value="1">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar Producto</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" name="nombre" value="{{ p.nombre }}" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Descripcion</label>
+                                <textarea name="descripcion" class="form-control" rows="3" required>{{ p.descripcion }}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Precio</label>
+                                <input type="number" name="precio" step="0.01" value="{{ p.precio|floatformat:'0' }}" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Categoría</label>
+                                <select name="categoria" class="form-select" required>
+                                    {% for item in categorias %}
+                                        <option value="{{ item.id }}" {% if item.id == p.categoria.id %}selected{% endif %}>{{ item.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Estanteria</label>
+                                <select name="estanteria" class="form-select" required>
+                                    {% for item in estanteria %}
+                                        <option value="{{ item.id }}" {% if item.id == p.estanteria.id %}selected{% endif %}>{{ item.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Pasillo</label>
+                                <select name="pasillo" class="form-select" required>
+                                    {% for item in pasillo %}
+                                        <option value="{{ item.id }}" {% if item.id == p.pasillo.id %}selected{% endif %}>{{ item.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">Guardar cambios</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="eliminarProductoModal{{ p.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="id" value="{{ p.id }}">
+                        <input type="hidden" name="eliminar_producto" value="1">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Eliminar Producto</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <p class="fs-5">¿Seguro que quieres eliminar <strong>"{{ p.nombre }}"</strong>?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="modal fade" id="crearProductoModal" tabindex="-1">
+        </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- LÓGICA PARA "VER MÁS / VER MENOS" ---
+        const descriptionLimit = 50;
+        const descriptionElements = document.querySelectorAll('.description-text');
+
+        descriptionElements.forEach(desc => {
+            const fullText = desc.getAttribute('data-full-text');
+            if (fullText && fullText.length > descriptionLimit) {
+                const shortText = fullText.substring(0, descriptionLimit) + '...';
+                desc.textContent = shortText;
+
+                const toggleButton = document.createElement('a');
+                toggleButton.href = '#';
+                toggleButton.textContent = 'Ver más';
+                toggleButton.classList.add('small', 'text-primary', 'd-block');
+
+                toggleButton.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (desc.textContent === shortText) {
+                        desc.textContent = fullText;
+                        toggleButton.textContent = 'Ver menos';
+                    } else {
+                        desc.textContent = shortText;
+                        toggleButton.textContent = 'Ver más';
+                    }
+                });
+                desc.parentNode.insertBefore(toggleButton, desc.nextSibling);
+            }
+        });
+        
+        // --- LÓGICA PARA BÚSQUEDA Y FILTRO ---
+        const buscarInput = document.getElementById('buscarProducto');
+        const filtrarCategoria = document.getElementById('filtrarCategoria');
+        const productosContainer = document.getElementById('productosContainer');
+        const productosCards = productosContainer.querySelectorAll('.producto-card');
+
+        function filtrarProductos() {
+            const search = buscarInput.value.toLowerCase();
+            const categoria = filtrarCategoria.value.toLowerCase();
+
+            productosCards.forEach(card => {
+                const nombre = card.getAttribute('data-nombre').toLowerCase();
+                const cat = card.getAttribute('data-categoria').toLowerCase();
+                if (nombre.includes(search) && (categoria === "" || cat === categoria)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        buscarInput.addEventListener('input', filtrarProductos);
+        filtrarCategoria.addEventListener('change', filtrarProductos);
+    });
+</script>
+{% endblock %}
