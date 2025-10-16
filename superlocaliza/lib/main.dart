@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:superlocaliza/screens/login_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'screens/auth_check_screen.dart';
 
 void main() async {
 
@@ -45,7 +45,8 @@ class _MyAppState extends State<MyApp> {
         scaffoldBackgroundColor: Color(0xFF121212),
       ),
       themeMode: _themeMode,
-      home: const LoginScreen(),
+      home: const AuthCheckScreen(),
     );
   }
+
 }

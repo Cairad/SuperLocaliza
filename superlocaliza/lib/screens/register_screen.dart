@@ -48,7 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    final registerUrl = Uri.parse('http://192.168.1.200:8000/api/clientes/');
+    final registerUrl = Uri.parse('https://superlocaliza-backend.onrender.com/api/clientes/');
     final username = _usernameController.text;
     final password = _passwordController.text;
 
@@ -74,7 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (registerResponse.statusCode == 201) {
           // --- Paso 2: Si el registro es exitoso, Iniciar Sesión Automáticamente ---
           final loginUrl = Uri.parse(
-            'http://192.168.1.200:8000/api/clientes/token/',
+            'https://superlocaliza-backend.onrender.com/api/clientes/token/',
           );
           final loginResponse = await http.post(
             loginUrl,

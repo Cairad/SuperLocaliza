@@ -42,7 +42,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final userId = decodedToken['user_id'];
 
     final url = Uri.parse(
-      'http://192.168.1.200:8000/api/clientes/$userId/set_password/',
+      'https://superlocaliza-backend.onrender.com/api/clientes/$userId/set_password/',
     );
 
     try {

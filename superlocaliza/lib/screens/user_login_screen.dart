@@ -39,7 +39,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
     } else if (refreshToken != null) {
       // CAMBIO: Apuntar a la nueva URL de refresco de clientes
       final refreshUrl = Uri.parse(
-        'http://192.168.1.200:8000/api/clientes/token/refresh/',
+        'https://superlocaliza-backend.onrender.com/api/clientes/token/refresh/',
       );
       try {
         final refreshResponse = await http.post(
@@ -84,7 +84,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
     final password = _passwordController.text.trim();
 
     // CAMBIO: Apuntar a la nueva URL de login de clientes
-    final url = Uri.parse('http://192.168.1.200:8000/api/clientes/token/');
+    final url = Uri.parse('https://superlocaliza-backend.onrender.com/api/clientes/token/');
 
     try {
       final response = await http.post(

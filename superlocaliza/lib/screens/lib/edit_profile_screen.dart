@@ -61,7 +61,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    final url = Uri.parse('http://192.168.1.200:8000/api/clientes/$_userId/');
+    final url = Uri.parse('https://superlocaliza-backend.onrender.com/api/clientes/$_userId/');
     try {
       final response = await http.get(
         url,
@@ -104,7 +104,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _isLoading = true);
 
-    final url = Uri.parse('http://192.168.1.200:8000/api/clientes/$_userId/');
+    final url = Uri.parse('https://superlocaliza-backend.onrender.com/api/clientes/$_userId/');
     try {
       final response = await http.patch(
         url,

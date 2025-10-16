@@ -39,7 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
     final userId = decodedToken['user_id'];
 
-    final url = Uri.parse('http://192.168.1.200:8000/api/clientes/$userId/');
+    final url = Uri.parse('https://superlocaliza-backend.onrender.com/api/clientes/$userId/');
     try {
       final response = await http.get(
         url,
@@ -98,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
     final userId = decodedToken['user_id'];
 
-    final url = Uri.parse('http://192.168.1.200:8000/api/clientes/$userId/');
+    final url = Uri.parse('https://superlocaliza-backend.onrender.com/api/clientes/$userId/');
 
     try {
       final response = await http.delete(

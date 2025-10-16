@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<bool> _refreshAccessToken() async {
     if (_refreshToken == null) return false;
-    final url = Uri.parse('http://192.168.1.200:8000/api/clientes/token/refresh/');
+    final url = Uri.parse('https://superlocaliza-backend.onrender.com/api/clientes/token/refresh/');
     try {
       final response = await http.post(
         url,
@@ -84,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _handleSessionExpired(showError: false);
       return;
     }
-    final url = Uri.parse('http://192.168.1.200:8000/api/productos/');
+    final url = Uri.parse('https://superlocaliza-backend.onrender.com/api/productos/');
     try {
       http.Response response = await http.get(
         url,

@@ -41,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Se elimina el tipo 'int' para que Dart maneje el tipo dinámico del token.
     final userId = decodedToken['user_id'];
 
-    final url = Uri.parse('http://192.168.1.200:8000/api/clientes/$userId/');
+    final url = Uri.parse('https://superlocaliza-backend.onrender.com/api/clientes/$userId/');
     try {
       final response = await http.get(
         url,
