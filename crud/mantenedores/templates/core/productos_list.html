@@ -34,11 +34,11 @@
             <div class="card h-100 shadow-sm border-0">
 
                 {% if p.imagen %}
-                <img src="{{ p.imagen.url }}" class="card-img-top" alt="{{ p.nombre }}"
-                    style="height: 200px; object-fit: cover;">
+                    <img src="{{ p.imagen.url }}" class="card-img-top" alt="{{ p.nombre }}"
+                        style="height: 200px; object-fit: cover;">
                 {% else %}
-                <img src="[URL_de_tu_imagen_placeholder.png]" class="card-img-top" alt="Sin imagen"
-                    style="height: 200px; object-fit: cover;">
+                    <img src="{% static 'crud/img/placeholder.png' %}" class="card-img-top" alt="Sin imagen"
+                        style="height: 200px; object-fit: cover;">
                 {% endif %}
 
                 <div class="card-body d-flex flex-column">

@@ -5,6 +5,8 @@ Django settings for crud project.
 from pathlib import Path
 import os
 import dj_database_url
+import logging
+import cloudinary
 
 AUTH_USER_MODEL = 'mantenedores.Usuario'
 
@@ -138,4 +140,12 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+logging.basicConfig(level=logging.ERROR)
