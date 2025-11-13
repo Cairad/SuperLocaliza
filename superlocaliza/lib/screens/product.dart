@@ -7,6 +7,7 @@ class Product {
   final String estante;
   final String precio;
   final String? descripcion;
+  final String? imagen;
   
   // --- CAMPOS NUEVOS PARA PROMOCIONES ---
   final String? precioConDescuento;
@@ -21,6 +22,7 @@ class Product {
     this.descripcion,
     this.precioConDescuento, // <-- AÑADIDO
     this.descuentoActivo,   // <-- AÑADIDO
+    this.imagen,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class Product {
       // --- MAPEO DE NUEVOS CAMPOS ---
       precioConDescuento: json['precio_con_descuento']?.toString(),
       descuentoActivo: json['descuento_activo']?.toString(),
+      imagen: json['imagen'],
     );
   }
 }

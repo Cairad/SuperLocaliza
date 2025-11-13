@@ -158,159 +158,198 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _mostrarModalProducto(Product producto) {
-    final currencyFormat =
-        NumberFormat.currency(locale: 'es_CL', symbol: '\$', decimalDigits: 0);
-    final double precioOriginal = double.tryParse(producto.precio) ?? 0;
-    final double? precioFinal =
-        double.tryParse(producto.precioConDescuento ?? '');
-    final bool enOferta =
-        precioFinal != null && precioFinal < precioOriginal;
+      final currencyFormat =
+          NumberFormat.currency(locale: 'es_CL', symbol: '\$', decimalDigits: 0);
+      final double precioOriginal = double.tryParse(producto.precio) ?? 0;
+      final double? precioFinal =
+          double.tryParse(producto.precioConDescuento ?? '');
+      final bool enOferta =
+          precioFinal != null && precioFinal < precioOriginal;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        bool isExpanded = false;
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            const int descriptionLimit = 100;
-            final bool isLongDescription =
-                (producto.descripcion?.length ?? 0) > descriptionLimit;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          bool isExpanded = false; // Variable de estado para el "Ver más"
 
-            String displayedDescription =
-                producto.descripcion ?? 'No disponible';
-            if (isLongDescription && !isExpanded) {
-              displayedDescription =
-                  '${producto.descripcion!.substring(0, descriptionLimit)}...';
-            }
+          // --- SOLO NECESITAS ESTE STATEFULBUILDER ---
+          return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+              
+              // --- LA LÓGICA DE LA DESCRIPCIÓN DEBE IR AQUÍ DENTRO ---
+              const int descriptionLimit = 100;
+              final bool isLongDescription =
+                  (producto.descripcion?.length ?? 0) > descriptionLimit;
 
-            return Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    producto.nombre,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF4A90E2),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Descripción:',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    displayedDescription,
-                    style: const TextStyle(
-                        fontSize: 15, color: Colors.black87, height: 1.4),
-                  ),
-                  if (isLongDescription)
-                    InkWell(
-                      onTap: () {
-                        setModalState(() {
-                          isExpanded = !isExpanded;
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Row(
-                          children: [
-                            Text(
-                              isExpanded ? 'Ver menos' : 'Ver más',
-                              style: const TextStyle(
-                                color: Color(0xFF4A90E2),
-                                fontWeight: FontWeight.bold,
-                              ),
+              String displayedDescription =
+                  producto.descripcion ?? 'No disponible';
+              if (isLongDescription && !isExpanded) {
+                displayedDescription =
+                    '${producto.descripcion!.substring(0, descriptionLimit)}...';
+              }
+              // --- FIN DE LA LÓGICA DE DESCRIPCIÓN ---
+
+              // --- AHORA RETORNA EL SingleChildScrollView DIRECTAMENTE ---
+              return SingleChildScrollView(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // --- WIDGET DE IMAGEN ---
+                      if (producto.imagen != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12.0),
+                            child: Image.network(
+                              producto.imagen!,
+                              height: 250,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const SizedBox(
+                                  height: 250,
+                                  child: Center(child: CircularProgressIndicator()),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return const SizedBox(
+                                  height: 250,
+                                  child: Icon(Icons.broken_image,
+                                      size: 50, color: Colors.grey),
+                                );
+                              },
                             ),
-                            Icon(
-                              isExpanded
-                                  ? Icons.expand_less
-                                  : Icons.expand_more,
-                              color: const Color(0xFF4A90E2),
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  const Divider(height: 32),
-                  _buildInfoRow('Categoría:', producto.categoria),
-                  _buildInfoRow('Pasillo:', producto.pasillo),
-                  _buildInfoRow('Estantería:', producto.estante),
-                  const Divider(height: 32),
-                  if (enOferta) ...[
-                    Text(
-                      'Precio Original:',
-                      style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black54,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      currencyFormat.format(precioOriginal),
-                      style: const TextStyle(
-                          fontSize: 18,
-                          color: Colors.black45,
-                          decoration: TextDecoration.lineThrough),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoRow('Precio Oferta:',
-                        currencyFormat.format(precioFinal),
-                        isPrice: true),
-                  ] else ...[
-                    _buildInfoRow('Precio:',
-                        currencyFormat.format(precioOriginal),
-                        isPrice: true),
-                  ],
-                  const SizedBox(height: 32),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProductMapScreen(
-                            producto: producto,
-                            productos: _productos,
                           ),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.location_on, color: Colors.white),
-                    label: const Text(
-                      'Ver en el mapa',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A90E2),
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+
+                      // --- RESTO DEL CONTENIDO ---
+                      Text(
+                        producto.nombre,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4A90E2),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Descripción:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black54,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        displayedDescription, // Usa la variable calculada
+                        style: const TextStyle(
+                            fontSize: 15, color: Colors.black87, height: 1.4),
+                      ),
+                      if (isLongDescription)
+                        InkWell(
+                          onTap: () {
+                            // Este setModalState ahora funciona
+                            setModalState(() {
+                              isExpanded = !isExpanded;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Row(
+                              children: [
+                                Text(
+                                  isExpanded ? 'Ver menos' : 'Ver más',
+                                  style: const TextStyle(
+                                    color: Color(0xFF4A90E2),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Icon(
+                                  isExpanded
+                                      ? Icons.expand_less
+                                      : Icons.expand_more,
+                                  color: const Color(0xFF4A90E2),
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      const Divider(height: 32),
+                      _buildInfoRow('Categoría:', producto.categoria),
+                      _buildInfoRow('Pasillo:', producto.pasillo ?? 'N/A'),
+                      _buildInfoRow('Estantería:', producto.estante ?? 'N/A'),
+                      const Divider(height: 32),
+                      if (enOferta) ...[
+                        Text(
+                          'Precio Original:',
+                          style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black54,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          currencyFormat.format(precioOriginal),
+                          style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.black45,
+                              decoration: TextDecoration.lineThrough),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildInfoRow('Precio Oferta:',
+                            currencyFormat.format(precioFinal),
+                            isPrice: true),
+                      ] else ...[
+                        _buildInfoRow('Precio:',
+                            currencyFormat.format(precioOriginal),
+                            isPrice: true),
+                      ],
+                      const SizedBox(height: 32),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProductMapScreen(
+                                producto: producto,
+                                productos: _productos,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.location_on, color: Colors.white),
+                        label: const Text(
+                          'Ver en el mapa',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4A90E2),
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
 
   Widget _buildInfoRow(String label, String value, {bool isPrice = false}) {
     return Padding(
@@ -518,9 +557,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                     margin: const EdgeInsets.symmetric(
                                         vertical: 6, horizontal: 4),
                                     child: ListTile(
-                                      leading: const Icon(
-                                        Icons.shopping_bag,
-                                        color: Colors.white,
+                                      leading: CircleAvatar(
+                                        radius: 28,
+                                        backgroundColor: Colors.white.withOpacity(0.5),
+                                        //backgroundImage tomará la NetworkImage si no es nula
+                                        backgroundImage: (producto.imagen != null)
+                                            ? NetworkImage(producto.imagen!)
+                                            : null,
+                                        // Si la imagen es nula, muestra el ícono original
+                                        child: (producto.imagen == null)
+                                            ? const Icon(
+                                                Icons.shopping_bag,
+                                                color: Colors.white,
+                                              )
+                                            : null,
                                       ),
                                       title: Text(
                                         producto.nombre,
