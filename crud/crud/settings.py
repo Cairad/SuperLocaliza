@@ -12,20 +12,21 @@ AUTH_USER_MODEL = 'mantenedores.Usuario'
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# --- Configuración Dinámica de Entorno ---
+# --- Configuración Dinámica de Entorno (Versión "a la fuerza") ---
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-# Usamos DATABASE_URL para detectar si estamos en producción (Render)
-IS_PRODUCTION = 'DATABASE_URL' in os.environ
+# Vamos a crear una variable 'DJANGO_ENV' en Render con el valor 'production'
+IS_PRODUCTION = os.environ.get('DJANGO_ENV') == 'production'
 
 if IS_PRODUCTION:
+    # Estamos en PRODUCCIÓN (Render)
     DEBUG = False
     RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
     ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME]
     CSRF_TRUSTED_ORIGINS = [f"https://{RENDER_EXTERNAL_HOSTNAME}"]
 else:
+    # Estamos en LOCAL
     DEBUG = True
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
     CSRF_TRUSTED_ORIGINS = []
