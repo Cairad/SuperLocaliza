@@ -41,7 +41,7 @@ class Producto(models.Model):
             descuento = self.precio * (promocion_activa.descuento / 100)
             return self.precio - descuento
         return self.precio
-
+    imagen = models.ImageField(upload_to='productos/', blank=True, null=True)
     def __str__(self):
         return self.nombre
 

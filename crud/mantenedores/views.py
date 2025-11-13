@@ -22,14 +22,20 @@ def productos_list(request):
 
     if request.method == 'POST':
         if "crear_producto" in request.POST:
-            form = ProductoForm(request.POST)
+            # --- CORRECCIÓN AQUÍ ---
+            # Añade request.FILES para procesar la imagen
+            form = ProductoForm(request.POST, request.FILES) 
+            # ---------------------
             if form.is_valid():
                 form.save()
                 return redirect('productos_list')
 
         if "editar_producto" in request.POST:
             producto = get_object_or_404(Producto, id=request.POST.get("id"))
-            form = ProductoForm(request.POST, instance=producto)
+            # --- CORRECCIÓN AQUÍ ---
+            # Añade request.FILES también al editar
+            form = ProductoForm(request.POST, request.FILES, instance=producto)
+            # ---------------------
             if form.is_valid():
                 form.save()
                 return redirect('productos_list')

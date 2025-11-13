@@ -4,7 +4,9 @@ from .models import *
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
-        fields = ['nombre', 'descripcion', 'categoria','estanteria','pasillo', 'precio']
+        # --- AÑADIR 'imagen' A LA LISTA ---
+        fields = ['nombre', 'descripcion', 'categoria', 'estanteria', 'pasillo', 'precio', 'imagen']
+        
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -12,6 +14,9 @@ class ProductoForm(forms.ModelForm):
             'estanteria': forms.Select(attrs={'class': 'form-select'}),
             'pasillo': forms.Select(attrs={'class': 'form-select'}),
             'precio': forms.NumberInput(attrs={'class': 'form-control'}),
+            
+            # --- AÑADIR EL WIDGET PARA LA IMAGEN ---
+            'imagen': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
 class CategoriaForm(forms.ModelForm):
