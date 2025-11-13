@@ -21,7 +21,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # DEBUG se activa solo si la variable 'RENDER' NO existe (es decir, en local)
 # En Render, 'RENDER' existe, por lo que DEBUG = False
-DEBUG = 'RENDER' not in os.environ
+DEBUG = 'DATABASE_URL' not in os.environ
 
 ALLOWED_HOSTS = []
 CSRF_TRUSTED_ORIGINS = [] # Necesario para POST en producción
