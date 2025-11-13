@@ -19,9 +19,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Lee la SECRET_KEY desde las variables de entorno.
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-# DEBUG se activa solo si la variable 'RENDER' NO existe (es decir, en local)
-# En Render, 'RENDER' existe, por lo que DEBUG = False
-DEBUG = 'DATABASE_URL' not in os.environ
+# --- Configuración Dinámica de Entorno ---
+
+# Render_EXTERNAL_HOSTNAME solo existe en Render.
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+
+if RENDER_EXTERNAL_HOSTNAME:
+    # Estamos en PRODUCCIÓN (Render)
+    DEBUG = False
+    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME]
+    CSRF_TRUSTED_ORIGINS = [f"https://{RENDER_EXTERNAL_HOSTNAME}"]
+else:
+    # Estamos en LOCAL
+    DEBUG = True
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+
+
 
 ALLOWED_HOSTS = []
 CSRF_TRUSTED_ORIGINS = [] # Necesario para POST en producción
