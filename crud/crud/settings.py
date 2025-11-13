@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'mantenedores',
-    'storages', # Para Backblaze B2
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
@@ -156,37 +157,18 @@ if DEBUG:
 
 else:
     # --- Configuración de PRODUCCIÓN (DEBUG=False) en Render ---
-    AWS_ACCESS_KEY_ID = os.environ.get('B2_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.environ.get('B2_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = os.environ.get('B2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = os.environ.get('B2_ENDPOINT_URL') # ej: https://s3.us-east-005.backblazeb2.com
-    
-    if AWS_S3_ENDPOINT_URL:
-        # Extrae el host (ej: s3.us-east-005.backblazeb2.com)
-        b2_endpoint_host = AWS_S3_ENDPOINT_URL.split('//')[-1]
-        
-        # --- INICIO: CONFIGURACIÓN EXPLÍCITA REQUERIDA ---
-        AWS_S3_REGION_NAME = b2_endpoint_host.split('.')[1]
-        AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.{b2_endpoint_host}'
-        AWS_S3_SIGNATURE_VERSION = 's3v4'
-        AWS_S3_FILE_OVERWRITE = False # No sobrescribir archivos (opcional, pero buena práctica)
-        # --- FIN: CONFIGURACIÓN EXPLÍCITA ---
-        
-        MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
-    else:
-        AWS_S3_REGION_NAME = None
-        MEDIA_URL = '/media-error/'
+    # Cloudinary se configura automáticamente desde la variable de entorno CLOUDINARY_URL
 
-    # Configuración de django-storages
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=86400',
-    }
-    AWS_LOCATION = 'media' # Carpeta raíz para todos los archivos subidos en el bucket
-    AWS_DEFAULT_ACL = 'public-read' 
-    
-    # Le dice a Django que use S3 para los archivos subidos
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    
+    # 1. Configuración de Archivos Estáticos (CSS/JS)
+    # Whitenoise sigue manejando esto
+    STATIC_URL = '/static/'
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+    # 2. Configuración de Archivos Multimedia (Imágenes)
+    # Cloudinary manejará esto
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    MEDIA_URL = '/media/' # Cloudinary interceptará esto
     MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
