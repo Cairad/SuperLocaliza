@@ -162,7 +162,13 @@ else:
     AWS_ACCESS_KEY_ID = os.environ.get('B2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.environ.get('B2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = os.environ.get('B2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = os.environ.get('B2_ENDPOINT_URL') # Ej: 'https://s3.us-west-004.backblazeb2.com'
+    AWS_S3_ENDPOINT_URL = os.environ.get('B2_ENDPOINT_URL')
+    
+    # --- ¡ESTA LÍNEA FALTABA! ---
+    # Boto3 (la librería de subida) necesita saber la región exacta.
+    # La extraemos del endpoint (ej: 's3.us-east-005.backblazeb2.com' -> 'us-east-005')
+    AWS_S3_REGION_NAME = AWS_S3_ENDPOINT_URL.split('.')[1]
+    # --------------------------------------------------------
     
     # Configuración de django-storages
     AWS_S3_OBJECT_PARAMETERS = {
@@ -175,7 +181,7 @@ else:
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     
     # URL pública para acceder a los archivos
-    b2_endpoint_host = os.environ.get('B2_ENDPOINT_URL').split('//')[-1]
+    b2_endpoint_host = AWS_S3_ENDPOINT_URL.split('//')[-1]
     MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.{b2_endpoint_host}/media/"
     MEDIA_ROOT = BASE_DIR / 'media' # Django aún necesita esto
 
