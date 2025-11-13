@@ -65,8 +65,9 @@ class ProductoSerializer(serializers.ModelSerializer):
     categoria = serializers.StringRelatedField()
     pasillo = serializers.StringRelatedField()
     estante = serializers.StringRelatedField(source='estanteria')
-    
-    # --- VERIFICA ESTOS DOS CAMPOS ---
+
+    imagen = serializers.SerializerMethodField()  # 👈 CAMBIO IMPORTANTE
+
     precio_con_descuento = serializers.ReadOnlyField()
     descuento_activo = serializers.SerializerMethodField()
 
@@ -74,17 +75,27 @@ class ProductoSerializer(serializers.ModelSerializer):
         model = Producto
         fields = [
             'id', 'imagen', 'nombre', 'precio', 'categoria', 'estante', 'pasillo', 'descripcion',
-            'precio_con_descuento', # <-- Asegúrate que esté en la lista
-            'descuento_activo'      # <-- Y este también
+            'precio_con_descuento',
+            'descuento_activo',
         ]
-    
+
+    def get_imagen(self, obj):
+        """
+        Devuelve la URL completa de la imagen (Cloudinary o local).
+        """
+        try:
+            if obj.imagen:
+                return obj.imagen.url   # ✔ Devuelve URL absoluta
+        except:
+            return None
+        return None
+
     def get_descuento_activo(self, obj):
-        """
-        Busca una promoción activa para el producto y devuelve el porcentaje de descuento.
-        """
         from django.utils import timezone
         hoy = timezone.now().date()
-        promocion = obj.promocion_set.filter(fecha_inicio__lte=hoy, fecha_fin__gte=hoy).first()
+        promocion = obj.promocion_set.filter(
+            fecha_inicio__lte=hoy, fecha_fin__gte=hoy
+        ).first()
         if promocion:
             return promocion.descuento
         return None
