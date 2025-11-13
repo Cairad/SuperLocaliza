@@ -159,21 +159,21 @@ else:
     AWS_ACCESS_KEY_ID = os.environ.get('B2_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.environ.get('B2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = os.environ.get('B2_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = os.environ.get('B2_ENDPOINT_URL') 
-
+    AWS_S3_ENDPOINT_URL = os.environ.get('B2_ENDPOINT_URL') # ej: https://s3.us-east-005.backblazeb2.com
+    
     if AWS_S3_ENDPOINT_URL:
         # Extrae el host (ej: s3.us-east-005.backblazeb2.com)
         b2_endpoint_host = AWS_S3_ENDPOINT_URL.split('//')[-1]
         
-        # --- ESTA ES LA LÓGICA CORREGIDA Y NECESARIA ---
-        # Extrae la región (ej: us-east-005)
+        # --- INICIO: CONFIGURACIÓN EXPLÍCITA REQUERIDA ---
         AWS_S3_REGION_NAME = b2_endpoint_host.split('.')[1]
-        # -----------------------------------------------
-
-        # URL pública para acceder a los archivos
-        MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.{b2_endpoint_host}/media/"
+        AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.{b2_endpoint_host}'
+        AWS_S3_SIGNATURE_VERSION = 's3v4'
+        AWS_S3_FILE_OVERWRITE = False # No sobrescribir archivos (opcional, pero buena práctica)
+        # --- FIN: CONFIGURACIÓN EXPLÍCITA ---
+        
+        MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
     else:
-        # Fallback por si la variable de entorno no está
         AWS_S3_REGION_NAME = None
         MEDIA_URL = '/media-error/'
 
