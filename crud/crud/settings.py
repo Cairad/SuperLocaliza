@@ -176,7 +176,7 @@ else:
     
     # URL pública para acceder a los archivos
     b2_endpoint_host = os.environ.get('B2_ENDPOINT_URL').split('//')[-1]
-    MEDIA_URL = f"httpss://{AWS_STORAGE_BUCKET_NAME}.{b2_endpoint_host}/media/"
+    MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.{b2_endpoint_host}/media/"
     MEDIA_ROOT = BASE_DIR / 'media' # Django aún necesita esto
 
 # Default primary key field type
