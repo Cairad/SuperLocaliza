@@ -8,33 +8,25 @@ import dj_database_url
 
 AUTH_USER_MODEL = 'mantenedores.Usuario'
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# --- Configuración Dinámica de Entorno (Versión "a la fuerza") ---
-
+# --- Entorno ---
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-# Vamos a crear una variable 'DJANGO_ENV' en Render con el valor 'production'
 IS_PRODUCTION = os.environ.get('DJANGO_ENV', '').strip() == 'production'
 
 if IS_PRODUCTION:
-    # Estamos en PRODUCCIÓN (Render)
     DEBUG = False
-    RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME]
-    CSRF_TRUSTED_ORIGINS = [f"https://{RENDER_EXTERNAL_HOSTNAME}"]
+    hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+    ALLOWED_HOSTS = [hostname] if hostname else ['*']
+    CSRF_TRUSTED_ORIGINS = [f"https://{hostname}"] if hostname else []
 else:
-    # Estamos en LOCAL
     DEBUG = True
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
     CSRF_TRUSTED_ORIGINS = []
 
-# --- Fin de la Configuración Dinámica ---
+# ------------------------
 
-
-# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -50,7 +42,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Para servir estáticos
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -78,11 +70,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'crud.wsgi.application'
 
-
-# --- Configuración Dinámica de Base de Datos ---
-
+# --- Base de datos ---
 if DEBUG:
-    # Configuración de base de datos LOCAL (PostgreSQL)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -94,7 +83,6 @@ if DEBUG:
         }
     }
 else:
-    # Configuración de base de datos de PRODUCCIÓN (Render)
     DATABASES = {
         'default': dj_database_url.config(
             conn_max_age=600,
@@ -102,8 +90,7 @@ else:
         )
     }
 
-
-# Password validation
+# --- Validación de contraseñas ---
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -111,12 +98,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Redirecciones de Login
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
 
-# Configuración de Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -126,32 +111,31 @@ REST_FRAMEWORK = {
     )
 }
 
-# Internationalization
 LANGUAGE_CODE = 'es'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-
-# --- Configuración de Archivos Estáticos (CSS/JS) ---
-# WhiteNoise se encargará de esto en producción
+# --- Archivos estáticos ---
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-
-# --- Configuración de Archivos Multimedia (Imágenes subidas por usuarios) ---
+# --- Archivos multimedia ---
 if DEBUG:
-    # --- Configuración LOCAL (DEBUG=True) ---
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 else:
-    # --- Configuración de PRODUCCIÓN (DEBUG=False) ---
-    # Cloudinary manejará esto
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    MEDIA_URL = '/media/' # Cloudinary interceptará esto
-    MEDIA_ROOT = BASE_DIR / 'media'
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = None
 
-# Default primary key field type
+# --- Cloudinary ---
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

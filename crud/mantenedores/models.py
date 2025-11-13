@@ -3,6 +3,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from cloudinary.models import CloudinaryField
 
 class Categoria(models.Model):
     nombre = models.CharField(max_length=100)
@@ -29,19 +30,20 @@ class Producto(models.Model):
     estanteria = models.ForeignKey(Estanteria, on_delete=models.CASCADE)
     pasillo = models.ForeignKey(Pasillo, on_delete=models.CASCADE)
     precio = models.DecimalField(max_digits=10, decimal_places=2)
+    imagen = CloudinaryField('image', blank=True, null=True)
+
     @property
     def precio_con_descuento(self):
-        hoy = timezone.now().date()  # convertimos a date
+        hoy = timezone.now().date()
         promocion_activa = Promocion.objects.filter(
             producto=self,
             fecha_inicio__lte=hoy,
             fecha_fin__gte=hoy
         ).first()
         if promocion_activa:
-            descuento = self.precio * (promocion_activa.descuento / 100)
-            return self.precio - descuento
+            return self.precio - (self.precio * (promocion_activa.descuento / 100))
         return self.precio
-    imagen = models.ImageField(upload_to='productos/', blank=True, null=True)
+
     def __str__(self):
         return self.nombre
 
