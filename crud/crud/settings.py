@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # Vamos a crear una variable 'DJANGO_ENV' en Render con el valor 'production'
-IS_PRODUCTION = os.environ.get('DJANGO_ENV') == 'production'
+IS_PRODUCTION = os.environ.get('DJANGO_ENV', '').strip() == 'production'
 
 if IS_PRODUCTION:
     # Estamos en PRODUCCIÓN (Render)
