@@ -3,10 +3,9 @@ import 'package:intl/intl.dart';
 import 'product.dart';
 import 'settings_screen.dart';
 
-// --- CAMBIO 1: Convertido a StatefulWidget ---
 class ProductMapScreen extends StatefulWidget {
-  final Product? producto; // El producto que se está buscando (opcional)
-  final List<Product>? productos; // La lista completa de todos los productos
+  final Product? producto;
+  final List<Product>? productos;
 
   const ProductMapScreen({super.key, this.producto, this.productos});
 
@@ -14,10 +13,8 @@ class ProductMapScreen extends StatefulWidget {
   State<ProductMapScreen> createState() => _ProductMapScreenState();
 }
 
-// --- CAMBIO 2: Nueva clase State ---
 class _ProductMapScreenState extends State<ProductMapScreen> {
-  bool _modalShown =
-      false; // Flag para evitar que el modal se abra múltiples veces
+  bool _modalShown = false;
 
   @override
   void initState() {
@@ -25,40 +22,34 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
     _checkAndShowModal();
   }
 
-  // --- NUEVA FUNCIÓN: Comprueba si se debe abrir el modal al inicio ---
+  // --- MODIFICADO: Ahora usa el nombre del pasillo ---
   void _checkAndShowModal() {
-    // Se ejecuta después de que la UI esté completamente construida
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Comprueba si se pasó un producto y si el modal no se ha mostrado ya
       if (widget.producto != null &&
           widget.producto!.pasillo != null &&
           widget.producto!.estante != null &&
           !_modalShown) {
-        // Marca el modal como mostrado para que no se repita
         setState(() {
           _modalShown = true;
         });
 
         try {
-          // Parsea el string "Pasillo X" para obtener el número X
-          final int aisleNum = int.parse(
-            widget.producto!.pasillo!.split(' ').last,
-          );
+          // Obtenemos el nombre del pasillo (ej: "Lacteos")
+          final String aisleCategoryName = widget.producto!.pasillo!;
+
           // Parsea el string "Estanteria X" para obtener el número X
           final int shelfNum = int.parse(
             widget.producto!.estante!.split(' ').last,
           );
 
           // Llama a la función que muestra el modal del estante
-          _showShelfContentsModal(context, aisleNum, shelfNum);
+          _showShelfContentsModal(context, aisleCategoryName, shelfNum);
         } catch (e) {
-          // Maneja cualquier error si el formato del string es incorrecto
           debugPrint('Error al parsear pasillo/estante: $e');
         }
       }
     });
   }
-  // ---
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +153,6 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
     );
   }
 
-  /// Construye la UI para la entrada del supermercado.
   Widget _buildStoreEntrance() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -194,7 +184,6 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
     );
   }
 
-  /// Muestra un modal con información y leyenda.
   void _showInfoModal(BuildContext context) {
     showDialog(
       context: context,
@@ -255,13 +244,10 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
     );
   }
 
-  /// Construye el pasillo vertical central y continuo.
   Widget _buildFullVerticalAisle() {
     return Container(
-      width: 24, // Ancho del pasillo vertical
-      margin: const EdgeInsets.symmetric(
-        vertical: 16.0,
-      ), // Margen superior/inferior
+      width: 24,
+      margin: const EdgeInsets.symmetric(vertical: 16.0),
       decoration: BoxDecoration(
         color: Colors.grey.shade300,
         border: Border.symmetric(
@@ -270,21 +256,20 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
       ),
       alignment: Alignment.center,
       child: RotatedBox(
-        quarterTurns: 3, // Rota 270 grados (texto hacia abajo)
+        quarterTurns: 3,
         child: Text(
           'PASILLO CENTRAL',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.grey.shade700,
             letterSpacing: 2,
-            fontSize: 11, // Ajusta el tamaño para que quepa
+            fontSize: 11,
           ),
         ),
       ),
     );
   }
 
-  /// Obtiene el nombre de la categoría del pasillo.
   String _getAisleCategoryName(int aisleNumber, bool isLeft) {
     switch (aisleNumber) {
       case 1:
@@ -294,13 +279,12 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
       case 3:
         return isLeft ? 'LACTEOS' : 'PASTAS';
       case 4:
-        return 'CONGELADOS'; // Aplica a ambos lados
+        return 'CONGELADOS';
       default:
         return 'PASILLO $aisleNumber';
     }
   }
 
-  /// Construye la columna de pasillos (izquierda o derecha).
   Widget _buildAisleColumn({
     required bool isLeft,
     required BuildContext context,
@@ -314,7 +298,7 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
             return _buildAisleSegment(
               aisleNumber,
               3, // 3 estantes por lado
-              isLeft, // true para lado izquierdo, false para derecho
+              isLeft,
               context,
             );
           }).reversed.toList(),
@@ -323,31 +307,36 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
     );
   }
 
-  /// Construye un segmento de pasillo (las dos filas de estantes y el nombre del pasillo).
+  // --- MODIFICADO: Ahora pasa el nombre de la categoría a _buildShelf ---
   Widget _buildAisleSegment(
     int aisleNumber,
     int shelfCountPerSide, // 3
     bool isLeft,
     BuildContext context,
   ) {
-    final topRowStart = isLeft
-        ? 1
-        : (shelfCountPerSide + 1); // 1 (izq) or 4 (der)
+    final topRowStart = isLeft ? 1 : (shelfCountPerSide + 1);
     final bottomRowStart = isLeft
         ? (shelfCountPerSide * 2 + 1)
-        : (shelfCountPerSide * 3 + 1); // 7 (izq) or 10 (der)
+        : (shelfCountPerSide * 3 + 1);
+
+    // Obtiene el nombre de la categoría para este segmento
+    final String aisleCategoryName = _getAisleCategoryName(aisleNumber, isLeft);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         children: [
+          // Fila superior
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(shelfCountPerSide, (index) {
               final shelfNumber = index + topRowStart;
-              return _buildShelf(aisleNumber, shelfNumber, context);
+              // Pasa el nombre de la categoría al estante
+              return _buildShelf(aisleCategoryName, shelfNumber, context);
             }),
           ),
+
+          // Barra de Nombre de Pasillo
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Container(
@@ -360,7 +349,7 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
                 ),
               ),
               child: Text(
-                _getAisleCategoryName(aisleNumber, isLeft),
+                aisleCategoryName, // Muestra el nombre de la categoría
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
@@ -371,11 +360,14 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
               ),
             ),
           ),
+
+          // Fila inferior
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(shelfCountPerSide, (index) {
               final shelfNumber = index + bottomRowStart;
-              return _buildShelf(aisleNumber, shelfNumber, context);
+              // Pasa el nombre de la categoría al estante
+              return _buildShelf(aisleCategoryName, shelfNumber, context);
             }),
           ),
         ],
@@ -383,16 +375,25 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
     );
   }
 
-  /// Construye un estante individual.
-  Widget _buildShelf(int aisleNum, int shelfNum, BuildContext context) {
+  // --- MODIFICADO: Compara por nombre de categoría, no por número ---
+  Widget _buildShelf(
+    String aisleCategoryName,
+    int shelfNum,
+    BuildContext context,
+  ) {
     bool isHighlighted = false;
 
-    // --- CAMBIO: Referencia a widget.producto ---
     if (widget.producto != null) {
       if (widget.producto!.pasillo != null &&
           widget.producto!.estante != null) {
-        if (widget.producto!.pasillo!.trim() == 'Pasillo $aisleNum' &&
-            widget.producto!.estante!.trim() == 'Estanteria $shelfNum') {
+        String productAisleName = widget.producto!.pasillo ?? '';
+        String productShelfName = widget.producto!.estante ?? '';
+
+        // Compara el nombre del pasillo del producto (ej: "Lacteos")
+        // con el nombre de la categoría del mapa (ej: "LACTEOS")
+        if (productAisleName.trim().toUpperCase() ==
+                aisleCategoryName.trim().toUpperCase() &&
+            productShelfName.trim() == 'Estanteria $shelfNum') {
           isHighlighted = true;
         }
       }
@@ -400,7 +401,8 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
 
     return GestureDetector(
       onTap: () {
-        _showShelfContentsModal(context, aisleNum, shelfNum);
+        // Pasa el nombre de la categoría al modal
+        _showShelfContentsModal(context, aisleCategoryName, shelfNum);
       },
       child: Container(
         width: 50,
@@ -437,20 +439,20 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
     );
   }
 
-  /// Muestra el modal con el contenido de un estante.
+  // --- MODIFICADO: Filtra por nombre de categoría, no por número ---
   void _showShelfContentsModal(
     BuildContext context,
-    int aisleNum,
+    String aisleCategoryName,
     int shelfNum,
   ) {
-    // --- CAMBIO: Referencia a widget.productos ---
     final List<Product> productsOnShelf =
         widget.productos
             ?.where(
               (p) =>
                   p.pasillo != null &&
                   p.estante != null &&
-                  p.pasillo!.trim() == 'Pasillo $aisleNum' &&
+                  p.pasillo!.trim().toUpperCase() ==
+                      aisleCategoryName.trim().toUpperCase() &&
                   p.estante!.trim() == 'Estanteria $shelfNum',
             )
             .toList() ??
@@ -474,7 +476,7 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Productos en Estanteria $shelfNum, Pasillo $aisleNum',
+                'Productos en Estanteria $shelfNum, $aisleCategoryName',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
