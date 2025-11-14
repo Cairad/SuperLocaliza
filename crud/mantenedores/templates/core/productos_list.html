@@ -67,10 +67,8 @@
                         <span class="text-muted small">Precio:</span>
                         <div class="d-flex flex-column align-items-end">
                             {% with precio_original=p.precio precio_descuento=p.precio_con_descuento %}
-                            {% if precio_descuento < precio_original %} <span class="text-danger fw-bold">${{
-                                precio_descuento|floatformat:'g' }}</span>
-                                <span class="text-muted small text-decoration-line-through">${{
-                                    precio_original|floatformat:'g' }}</span>
+                            {% if precio_descuento < precio_original %} <span class="text-danger fw-bold">${{precio_descuento|floatformat:'g' }}</span>
+                                <span class="text-muted small text-decoration-line-through">${{precio_original|floatformat:'g' }}</span>
                                 {% else %}
                                 <span class="fw-semibold">${{ precio_original|floatformat:'g' }}</span>
                                 {% endif %}
