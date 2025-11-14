@@ -26,8 +26,6 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
   void _checkAndShowModal() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.producto != null &&
-          widget.producto!.pasillo != null &&
-          widget.producto!.estante != null &&
           !_modalShown) {
         setState(() {
           _modalShown = true;
@@ -35,11 +33,11 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
 
         try {
           // Obtenemos el nombre del pasillo (ej: "Lacteos")
-          final String aisleCategoryName = widget.producto!.pasillo!;
+          final String aisleCategoryName = widget.producto!.pasillo;
 
           // Parsea el string "Estanteria X" para obtener el número X
           final int shelfNum = int.parse(
-            widget.producto!.estante!.split(' ').last,
+            widget.producto!.estante.split(' ').last,
           );
 
           // Llama a la función que muestra el modal del estante
@@ -384,8 +382,7 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
     bool isHighlighted = false;
 
     if (widget.producto != null) {
-      if (widget.producto!.pasillo != null &&
-          widget.producto!.estante != null) {
+      if (widget.producto!.estante != null) {
         String productAisleName = widget.producto!.pasillo ?? '';
         String productShelfName = widget.producto!.estante ?? '';
 
@@ -449,11 +446,10 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
         widget.productos
             ?.where(
               (p) =>
-                  p.pasillo != null &&
                   p.estante != null &&
-                  p.pasillo!.trim().toUpperCase() ==
+                  p.pasillo.trim().toUpperCase() ==
                       aisleCategoryName.trim().toUpperCase() &&
-                  p.estante!.trim() == 'Estanteria $shelfNum',
+                  p.estante.trim() == 'Estanteria $shelfNum',
             )
             .toList() ??
         [];

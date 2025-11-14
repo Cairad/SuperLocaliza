@@ -96,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             /// Función interna para quitar un producto del carrito.
-            void _quitarDelCarrito(int index) {
+            void quitarDelCarrito(int index) {
               setModalState(() {
                 _carrito.removeAt(index);
               });
@@ -186,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color: Colors.redAccent,
                                 ),
                                 onPressed: () {
-                                  _quitarDelCarrito(index);
+                                  quitarDelCarrito(index);
                                 },
                               ),
                             ),
