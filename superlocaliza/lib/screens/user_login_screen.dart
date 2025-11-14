@@ -18,64 +18,6 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isPasswordVisible = false;
-  bool _isCheckingToken = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _verifyToken();
-  }
-
-  Future<void> _verifyToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('accessToken');
-    final refreshToken = prefs.getString('refreshToken');
-
-    if (token != null && !JwtDecoder.isExpired(token)) {
-      if (!mounted) return;
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
-    } else if (refreshToken != null) {
-      // CAMBIO: Apuntar a la nueva URL de refresco de clientes
-      final refreshUrl = Uri.parse(
-        'https://superlocaliza-backend.onrender.com/api/clientes/token/refresh/',
-      );
-      try {
-        final refreshResponse = await http.post(
-          refreshUrl,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'refresh': refreshToken}),
-        );
-
-        if (refreshResponse.statusCode == 200) {
-          final newData = jsonDecode(refreshResponse.body);
-          final newToken = newData['access'] as String;
-          await prefs.setString('accessToken', newToken);
-
-          if (!mounted) return;
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
-        } else {
-          _clearSessionAndShowLogin();
-        }
-      } catch (e) {
-        _clearSessionAndShowLogin();
-      }
-    } else {
-      _clearSessionAndShowLogin();
-    }
-  }
-
-  Future<void> _clearSessionAndShowLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('accessToken');
-    await prefs.remove('refreshToken');
-    if (mounted) {
-      setState(() => _isCheckingToken = false);
-    }
-  }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -141,10 +83,6 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isCheckingToken) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
       body: SafeArea(
         child: Container(

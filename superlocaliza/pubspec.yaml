@@ -102,6 +102,6 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 flutter_launcher_icons:
-  android: "ic_launcher"
+  android: true
   ios: true
-  image_path: "assets/logo2.png" # <-- ¡CAMBIA ESTO POR TU RUTA!
+  image_path: "assets/logo.png"

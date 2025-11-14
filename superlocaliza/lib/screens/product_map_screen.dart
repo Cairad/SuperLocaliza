@@ -3,11 +3,62 @@ import 'package:intl/intl.dart';
 import 'product.dart';
 import 'settings_screen.dart';
 
-class ProductMapScreen extends StatelessWidget {
-  final Product? producto;
-  final List<Product>? productos;
+// --- CAMBIO 1: Convertido a StatefulWidget ---
+class ProductMapScreen extends StatefulWidget {
+  final Product? producto; // El producto que se está buscando (opcional)
+  final List<Product>? productos; // La lista completa de todos los productos
 
   const ProductMapScreen({super.key, this.producto, this.productos});
+
+  @override
+  State<ProductMapScreen> createState() => _ProductMapScreenState();
+}
+
+// --- CAMBIO 2: Nueva clase State ---
+class _ProductMapScreenState extends State<ProductMapScreen> {
+  bool _modalShown =
+      false; // Flag para evitar que el modal se abra múltiples veces
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAndShowModal();
+  }
+
+  // --- NUEVA FUNCIÓN: Comprueba si se debe abrir el modal al inicio ---
+  void _checkAndShowModal() {
+    // Se ejecuta después de que la UI esté completamente construida
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Comprueba si se pasó un producto y si el modal no se ha mostrado ya
+      if (widget.producto != null &&
+          widget.producto!.pasillo != null &&
+          widget.producto!.estante != null &&
+          !_modalShown) {
+        // Marca el modal como mostrado para que no se repita
+        setState(() {
+          _modalShown = true;
+        });
+
+        try {
+          // Parsea el string "Pasillo X" para obtener el número X
+          final int aisleNum = int.parse(
+            widget.producto!.pasillo!.split(' ').last,
+          );
+          // Parsea el string "Estanteria X" para obtener el número X
+          final int shelfNum = int.parse(
+            widget.producto!.estante!.split(' ').last,
+          );
+
+          // Llama a la función que muestra el modal del estante
+          _showShelfContentsModal(context, aisleNum, shelfNum);
+        } catch (e) {
+          // Maneja cualquier error si el formato del string es incorrecto
+          debugPrint('Error al parsear pasillo/estante: $e');
+        }
+      }
+    });
+  }
+  // ---
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +84,6 @@ class ProductMapScreen extends StatelessWidget {
             );
           },
         ),
-        // --- NUEVO WIDGET: Botón de información en el AppBar ---
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline, color: Colors.white),
@@ -55,7 +105,6 @@ class ProductMapScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // La leyenda se mueve al modal de información
             Expanded(
               child: Center(
                 child: Container(
@@ -74,25 +123,12 @@ class ProductMapScreen extends StatelessWidget {
                     children: [
                       _buildStoreEntrance(),
                       Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                            vertical: 16.0,
-                          ),
-                          child: Column(
-                            // --- CAMBIO: Se invierte el orden de los pasillos ---
-                            children:
-                                List.generate(4, (index) {
-                                      final aisleNumber =
-                                          4 - index; // 4, 3, 2, 1
-                                      return _buildAisle(
-                                        aisleNumber,
-                                        5,
-                                        context,
-                                      );
-                                    }).reversed
-                                    .toList(), // Para que el 1 quede abajo al inicio
-                          ),
+                        child: Row(
+                          children: [
+                            _buildAisleColumn(isLeft: true, context: context),
+                            _buildFullVerticalAisle(),
+                            _buildAisleColumn(isLeft: false, context: context),
+                          ],
                         ),
                       ),
                     ],
@@ -158,7 +194,7 @@ class ProductMapScreen extends StatelessWidget {
     );
   }
 
-  // --- NUEVA FUNCIÓN: Muestra un modal con información y leyenda ---
+  /// Muestra un modal con información y leyenda.
   void _showInfoModal(BuildContext context) {
     showDialog(
       context: context,
@@ -219,11 +255,88 @@ class ProductMapScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAisle(
+  /// Construye el pasillo vertical central y continuo.
+  Widget _buildFullVerticalAisle() {
+    return Container(
+      width: 24, // Ancho del pasillo vertical
+      margin: const EdgeInsets.symmetric(
+        vertical: 16.0,
+      ), // Margen superior/inferior
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        border: Border.symmetric(
+          vertical: BorderSide(color: Colors.grey.shade400, width: 2),
+        ),
+      ),
+      alignment: Alignment.center,
+      child: RotatedBox(
+        quarterTurns: 3, // Rota 270 grados (texto hacia abajo)
+        child: Text(
+          'PASILLO CENTRAL',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade700,
+            letterSpacing: 2,
+            fontSize: 11, // Ajusta el tamaño para que quepa
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Obtiene el nombre de la categoría del pasillo.
+  String _getAisleCategoryName(int aisleNumber, bool isLeft) {
+    switch (aisleNumber) {
+      case 1:
+        return isLeft ? 'FRUTAS' : 'VERDURAS';
+      case 2:
+        return isLeft ? 'SNACKS' : 'BEBIDAS';
+      case 3:
+        return isLeft ? 'LACTEOS' : 'PASTAS';
+      case 4:
+        return 'CONGELADOS'; // Aplica a ambos lados
+      default:
+        return 'PASILLO $aisleNumber';
+    }
+  }
+
+  /// Construye la columna de pasillos (izquierda o derecha).
+  Widget _buildAisleColumn({
+    required bool isLeft,
+    required BuildContext context,
+  }) {
+    return Expanded(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+        child: Column(
+          children: List.generate(4, (index) {
+            final aisleNumber = 4 - index; // 4, 3, 2, 1
+            return _buildAisleSegment(
+              aisleNumber,
+              3, // 3 estantes por lado
+              isLeft, // true para lado izquierdo, false para derecho
+              context,
+            );
+          }).reversed.toList(),
+        ),
+      ),
+    );
+  }
+
+  /// Construye un segmento de pasillo (las dos filas de estantes y el nombre del pasillo).
+  Widget _buildAisleSegment(
     int aisleNumber,
-    int shelfCountPerSide,
+    int shelfCountPerSide, // 3
+    bool isLeft,
     BuildContext context,
   ) {
+    final topRowStart = isLeft
+        ? 1
+        : (shelfCountPerSide + 1); // 1 (izq) or 4 (der)
+    final bottomRowStart = isLeft
+        ? (shelfCountPerSide * 2 + 1)
+        : (shelfCountPerSide * 3 + 1); // 7 (izq) or 10 (der)
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -231,7 +344,7 @@ class ProductMapScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(shelfCountPerSide, (index) {
-              final shelfNumber = index + 1;
+              final shelfNumber = index + topRowStart;
               return _buildShelf(aisleNumber, shelfNumber, context);
             }),
           ),
@@ -247,12 +360,13 @@ class ProductMapScreen extends StatelessWidget {
                 ),
               ),
               child: Text(
-                'PASILLO $aisleNumber',
+                _getAisleCategoryName(aisleNumber, isLeft),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey.shade700,
                   letterSpacing: 2,
+                  fontSize: 10,
                 ),
               ),
             ),
@@ -260,7 +374,7 @@ class ProductMapScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(shelfCountPerSide, (index) {
-              final shelfNumber = index + 1 + shelfCountPerSide;
+              final shelfNumber = index + bottomRowStart;
               return _buildShelf(aisleNumber, shelfNumber, context);
             }),
           ),
@@ -269,13 +383,18 @@ class ProductMapScreen extends StatelessWidget {
     );
   }
 
+  /// Construye un estante individual.
   Widget _buildShelf(int aisleNum, int shelfNum, BuildContext context) {
     bool isHighlighted = false;
 
-    if (producto != null) {
-      if (producto!.pasillo.trim() == 'Pasillo $aisleNum' &&
-          producto!.estante.trim() == 'Estanteria $shelfNum') {
-        isHighlighted = true;
+    // --- CAMBIO: Referencia a widget.producto ---
+    if (widget.producto != null) {
+      if (widget.producto!.pasillo != null &&
+          widget.producto!.estante != null) {
+        if (widget.producto!.pasillo!.trim() == 'Pasillo $aisleNum' &&
+            widget.producto!.estante!.trim() == 'Estanteria $shelfNum') {
+          isHighlighted = true;
+        }
       }
     }
 
@@ -318,17 +437,21 @@ class ProductMapScreen extends StatelessWidget {
     );
   }
 
+  /// Muestra el modal con el contenido de un estante.
   void _showShelfContentsModal(
     BuildContext context,
     int aisleNum,
     int shelfNum,
   ) {
+    // --- CAMBIO: Referencia a widget.productos ---
     final List<Product> productsOnShelf =
-        productos
+        widget.productos
             ?.where(
               (p) =>
-                  p.pasillo.trim() == 'Pasillo $aisleNum' &&
-                  p.estante.trim() == 'Estanteria $shelfNum',
+                  p.pasillo != null &&
+                  p.estante != null &&
+                  p.pasillo!.trim() == 'Pasillo $aisleNum' &&
+                  p.estante!.trim() == 'Estanteria $shelfNum',
             )
             .toList() ??
         [];
@@ -376,9 +499,19 @@ class ProductMapScreen extends StatelessWidget {
                         elevation: 2,
                         margin: const EdgeInsets.symmetric(vertical: 6),
                         child: ListTile(
-                          leading: const Icon(
-                            Icons.shopping_bag_outlined,
-                            color: Color(0xFF4A90E2),
+                          leading: CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage: (productOnList.imagen != null)
+                                ? NetworkImage(productOnList.imagen!)
+                                : null,
+                            child: (productOnList.imagen == null)
+                                ? Icon(
+                                    Icons.shopping_bag_outlined,
+                                    color: Colors.grey.shade600,
+                                    size: 20,
+                                  )
+                                : null,
                           ),
                           title: Text(
                             productOnList.nombre,
@@ -401,6 +534,7 @@ class ProductMapScreen extends StatelessWidget {
     );
   }
 
+  /// Construye el widget de precio para el modal.
   Widget _buildModalPrice(Product product, NumberFormat format) {
     final double precioOriginal = double.tryParse(product.precio) ?? 0;
     final double? precioFinal = double.tryParse(
